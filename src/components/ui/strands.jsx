@@ -323,19 +323,8 @@ export default function Strands({
       let targetSpeed = current.speed;
       let targetAmplitude = current.amplitude;
 
-      if (current.isAiSpeaking) {
-        targetSpeed = current.speed * 1.2;
-        targetAmplitude = current.amplitude * 1.5;
-      } else if (current.audioVolumeRef && current.audioVolumeRef.current > 0.01) {
-        // User speaking reactivity
-        const vol = current.audioVolumeRef.current;
-        targetAmplitude = current.amplitude + (vol * 0.8); 
-        targetSpeed = current.speed;
-      } else {
-        // Idle
-        targetAmplitude = current.amplitude; 
-        targetSpeed = current.speed; 
-      }
+      targetSpeed = current.speed;
+      targetAmplitude = current.amplitude;
       
       const ampLerpFactor = targetAmplitude > currentAmplitude ? 0.15 : 0.015;
       currentSpeed = lerp(currentSpeed, targetSpeed, 0.02);

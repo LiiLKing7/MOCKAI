@@ -11,8 +11,8 @@ import { ViewState } from "../App";
 import { PageProps } from "../App";
 import { BookOpen, Moon, Sun } from "lucide-react";
 
-const DEEPGRAM_API_KEY = "";
-const OPENROUTER_API_KEY = "";
+const DEEPGRAM_API_KEY = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || "";
 
 type Message = { role: "user" | "assistant"; content: string; feedback?: string };
 
@@ -385,12 +385,25 @@ IMPORTANT RULES:
     isPlayingAudioRef.current = false;
     isGeneratingRef.current = true;
 
+    let openRouterKey = OPENROUTER_API_KEY;
+    if (!openRouterKey) {
+      openRouterKey = localStorage.getItem("openrouter_api_key") || prompt("OpenRouter API kalitini kiriting:") || "";
+      if (openRouterKey) {
+        localStorage.setItem("openrouter_api_key", openRouterKey);
+      } else {
+        setThinking(false);
+        return;
+      }
+    }
+
     try {
       const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json"
+          "Authorization": `Bearer ${openRouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.href,
+          "X-Title": "CEFR Mock AI",
         },
         body: JSON.stringify({
           model: selectedModelRef.current,
@@ -531,9 +544,21 @@ IMPORTANT RULES:
       };
 
       const connectDeepgram = () => {
+        let currentKey = DEEPGRAM_API_KEY;
+        if (!currentKey) {
+          currentKey = localStorage.getItem("deepgram_api_key") || prompt("Deepgram API kalitini kiriting (xavfsiz, faqat brauzer xotirasida saqlanadi):") || "";
+          if (currentKey) {
+            localStorage.setItem("deepgram_api_key", currentKey);
+          } else {
+            alert("Deepgram kaliti yo'q. Ovozni aniqlash ishlamaydi.");
+            setMicReadyState(0);
+            return;
+          }
+        }
+
         const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en&endpointing=250&interim_results=true`, [
           "token",
-          DEEPGRAM_API_KEY,
+          currentKey,
         ]);
 
         socket.onopen = () => {
@@ -1030,11 +1055,11 @@ IMPORTANT RULES:
           <Strands
             colors={["#FF4242", "#7C3AED", "#06B6D4", "#EAB308"]}
             count={3}
-            speed={isRecording ? 1.0 : 0.5}
-            amplitude={isRecording ? 1.8 : 1.0}
+            speed={isRecording ? 0.8 : 0.4}
+            amplitude={isRecording ? 0.8 : 0.4}
             waviness={1}
-            thickness={0.7}
-            glow={isRecording ? 3.2 : 2.6}
+            thickness={0.5}
+            glow={isRecording ? 2.5 : 2.0}
             isAiSpeaking={isSpeaking}
             audioVolumeRef={audioVolumeRef}
           />
@@ -1047,11 +1072,11 @@ IMPORTANT RULES:
               <h3 className="text-3xl font-bold text-foreground uppercase tracking-widest mb-4">
                 PART {mockPart}: {mockPart === 1 ? "INTERVIEW" : mockPart === 2 ? "LONG TURN" : "DISCUSSION"}
               </h3>
-              <p className="text-foreground/90 text-lg leading-relaxed font-medium">
-                <TextReveal enableBlur={true} baseOpacity={0} blurStrength={10}>
-                  {mockPart === 1 ? "Imtihonchi sizga tanish mavzular (uy-joy, ish/o'qish, qiziqishlar va h.k.) bo'yicha bir necha savol beradi. Bu qism taxminan 4-5 daqiqa davom etadi. Tabiiy va erkin javob bering — tayyorgarlik vaqti kerak emas." : (mockPart === 2 ? "Sizga bitta mavzu beriladi va uni yoritish uchun bir necha nuqta ko'rsatiladi. Tayyorlanish uchun 1 daqiqa, so'ngra 1-2 daqiqa davomida shu mavzuda gapirishingiz kerak bo'ladi." : "Imtihonchi Part 2'dagi mavzu bilan bog'liq, chuqurroq fikr-mulohaza talab qiladigan savollar beradi. Bu yerda o'z fikringizni asoslab tushuntirish muhim.")}
-                </TextReveal>
-              </p>
+                <div className="text-foreground/90 text-lg leading-relaxed font-medium">
+                  <TextReveal enableBlur={true} baseOpacity={0} blurStrength={10}>
+                    {mockPart === 1 ? "Imtihonchi sizga tanish mavzular (uy-joy, ish/o'qish, qiziqishlar va h.k.) bo'yicha bir necha savol beradi. Bu qism taxminan 4-5 daqiqa davom etadi. Tabiiy va erkin javob bering — tayyorgarlik vaqti kerak emas." : (mockPart === 2 ? "Sizga bitta mavzu beriladi va uni yoritish uchun bir necha nuqta ko'rsatiladi. Tayyorlanish uchun 1 daqiqa, so'ngra 1-2 daqiqa davomida shu mavzuda gapirishingiz kerak bo'ladi." : "Imtihonchi Part 2'dagi mavzu bilan bog'liq, chuqurroq fikr-mulohaza talab qiladigan savollar beradi. Bu yerda o'z fikringizni asoslab tushuntirish muhim.")}
+                  </TextReveal>
+                </div>
             </div>
           </div>
         )}
