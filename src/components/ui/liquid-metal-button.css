@@ -1,0 +1,33 @@
+/* ========== 1-BUTTON: Liquid Metal ========== */
+.shader-container-exploded canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  border-radius: 100px !important;
+}
+
+.shader-container-exploded.fallback-metal {
+  background:
+    radial-gradient(circle at 18% 34%, rgba(255,255,255,0.96), rgba(255,255,255,0.12) 18%, transparent 36%),
+    radial-gradient(circle at 74% 24%, rgba(255,255,255,0.62), rgba(255,255,255,0.08) 20%, transparent 40%),
+    linear-gradient(120deg, #050505 0%, #5f5f5f 16%, #0b0b0b 28%, #e8e8e8 42%, #1b1b1b 56%, #9a9a9a 72%, #030303 100%);
+  background-size: 180% 180%, 160% 160%, 260% 260%;
+  animation: fallbackLiquidMetal 7s ease-in-out infinite alternate;
+}
+
+.shader-container-exploded.fallback-metal.fast { animation-duration: 2.5s; }
+.shader-container-exploded.fallback-metal.burst { animation-duration: 0.65s; }
+
+@keyframes fallbackLiquidMetal {
+  0% { background-position: 0% 46%, 100% 50%, 0% 50%; filter: contrast(1.2) brightness(0.92); }
+  50% { background-position: 70% 22%, 20% 80%, 72% 52%; filter: contrast(1.38) brightness(1.08); }
+  100% { background-position: 100% 64%, 0% 20%, 100% 50%; filter: contrast(1.24) brightness(0.96); }
+}
+
+@keyframes ripple-animation {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+}

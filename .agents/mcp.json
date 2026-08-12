@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "originkit": {
+      "url": "https://mcp.originkit.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer cmp_live_Uavh1ISpYHXFaR2M7LNBZmg5utf44xCr"
+      }
+    }
+  }
+}
