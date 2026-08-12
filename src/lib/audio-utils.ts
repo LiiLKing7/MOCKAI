@@ -79,7 +79,7 @@ export async function mergeAudioBlocks(blocks: AudioBlock[]): Promise<AudioBuffe
       source.buffer = block.audioBuffer;
       if (block.speed && block.speed !== 1) {
         source.playbackRate.value = block.speed;
-        source.preservesPitch = true;
+        (source as any).preservesPitch = false;
       }
       source.connect(offlineContext.destination);
       source.start(currentTime);

@@ -287,7 +287,7 @@ export function QuestionPanel({
         } else if (part.taskType === "matching") {
           const person = (part as any).people.find((p: any) => p.id === (q as any).personId);
           promptNode = person?.description;
-        } else if (part.taskType === "matching-headings") {
+        } else if ((part as any).taskType === "matching-headings") {
           promptNode = `Choose the correct heading for Paragraph ${absoluteIndex + 1}`;
         } else if (part.taskType === "gapped-text" || part.taskType === "cloze-mc") {
           promptNode = null;

@@ -11,8 +11,8 @@ import { ViewState } from "../App";
 import { PageProps } from "../App";
 import { BookOpen, Moon, Sun } from "lucide-react";
 
-const DEEPGRAM_API_KEY = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || "";
+const DEEPGRAM_API_KEY = (import.meta as any).env.VITE_DEEPGRAM_API_KEY || "";
+const OPENROUTER_API_KEY = (import.meta as any).env.VITE_OPENROUTER_API_KEY || "";
 
 type Message = { role: "user" | "assistant"; content: string; feedback?: string };
 
@@ -551,7 +551,7 @@ IMPORTANT RULES:
             localStorage.setItem("deepgram_api_key", currentKey);
           } else {
             alert("Deepgram kaliti yo'q. Ovozni aniqlash ishlamaydi.");
-            setMicReadyState(0);
+            setMicReadyState(0 as any);
             return;
           }
         }

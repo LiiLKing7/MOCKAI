@@ -90,10 +90,10 @@ export function renderGappedTextWithHighlights(
     if (typeof node === 'string') {
       processString(node);
     } else if (React.isValidElement(node) && node.type === React.Fragment) {
-      processString(node.props.children as string);
+      processString((node.props as any).children as string);
     } else if (React.isValidElement(node) && node.type === 'mark') {
-      processString(node.props.children as string, (content, key) => (
-        <mark key={`mark-wrap-${key}`} className={node.props.className}>
+      processString((node.props as any).children as string, (content, key) => (
+        <mark key={`mark-wrap-${key}`} className={(node.props as any).className}>
           {content}
         </mark>
       ));
