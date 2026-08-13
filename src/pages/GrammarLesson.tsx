@@ -4,17 +4,8 @@ import { Button } from "@/components/ui/button";
 import { PageProps } from "../App";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type BoardBlockType = "heading" | "text" | "highlight" | "bold" | "underline" | "icon" | "diagram-note";
-
-interface BoardBlock {
-  type: BoardBlockType;
-  content: string;
-  style?: Record<string, string>;
-}
-
 interface LessonStep {
   id: string;
-  boardContent: BoardBlock[];
   speechText: string;
 }
 
@@ -48,92 +39,27 @@ const VOICE_MODELS = [
   { id: "aura-orion-en", name: "Orion (Male)" },
 ];
 
-// ─── BoardBlock Renderer ──────────────────────────────────────────────────────
-function BoardBlockRenderer({ block, baseWordIndex, activeWordIndex }: { block: BoardBlock; baseWordIndex: number; activeWordIndex: number }) {
-  const words = block.content.split(" ");
+// ─── Board Step Renderer ──────────────────────────────────────────────────────
+function BoardStep({ text, activeWordIndex }: { text: string; activeWordIndex: number }) {
+  // Strip any SSML just in case LLM generates it, though we asked for punctuation
+  const cleanText = text.replace(/<[^>]+>/g, '').trim();
+  const words = cleanText.split(/\s+/);
   
-  const textContent = (
-    <span>
+  return (
+    <div className="mb-8 leading-relaxed text-2xl font-sans">
       {words.map((word, i) => {
-        const absoluteIdx = baseWordIndex + i;
-        const isRevealed = activeWordIndex === -1 || absoluteIdx <= activeWordIndex;
-        const isHighlighted = absoluteIdx === activeWordIndex;
+        const isRevealed = activeWordIndex === -1 || i <= activeWordIndex;
+        const isHighlighted = i === activeWordIndex;
         
         return (
           <span key={i}>
             <span 
-              className={`inline-block transition-all duration-300 ${isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${isHighlighted ? "bg-amber-200/50 dark:bg-amber-500/30 rounded" : ""}`}
+              className={`inline-block transition-all duration-300 ${isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${isHighlighted ? "bg-amber-200/50 dark:bg-amber-500/30 rounded px-1" : ""}`}
             >
               {word}
             </span>
             {i < words.length - 1 && " "}
           </span>
-        );
-      })}
-    </span>
-  );
-
-  if (block.type === "heading") {
-    return (
-      <h3 className="text-xl font-bold text-foreground mt-4 mb-2 flex items-center gap-2">
-        <span className="w-1 h-6 rounded-full bg-primary inline-block" />
-        {textContent}
-      </h3>
-    );
-  }
-  if (block.type === "highlight") {
-    const color = block.style?.color === "info"
-      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
-      : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200";
-    return (
-      <span className={`inline-block px-2 py-0.5 rounded font-medium mx-0.5 ${color}`}>
-        {textContent}
-      </span>
-    );
-  }
-  if (block.type === "bold") {
-    return <strong className="font-bold text-foreground">{textContent}</strong>;
-  }
-  if (block.type === "underline") {
-    return <span className="underline decoration-2 decoration-primary">{textContent}</span>;
-  }
-  if (block.type === "icon") {
-    const isCheck = block.content.toLowerCase().includes("correct") || block.content.startsWith("✓");
-    const isX = block.content.toLowerCase().includes("wrong") || block.content.includes("✗");
-    return (
-      <span className="inline-flex items-center gap-1.5 my-1">
-        {isCheck && <Check className="w-4 h-4 text-emerald-500 shrink-0" />}
-        {isX && <X className="w-4 h-4 text-red-500 shrink-0" />}
-        {!isCheck && !isX && <CornerDownRight className="w-4 h-4 text-muted-foreground shrink-0" />}
-        <span className="text-sm text-foreground">{textContent}</span>
-      </span>
-    );
-  }
-  if (block.type === "diagram-note") {
-    return (
-      <div className="flex items-start gap-2 pl-4 border-l-2 border-dashed border-muted-foreground/40 my-2">
-        <CornerDownRight className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-        <span className="text-sm text-muted-foreground italic">{textContent}</span>
-      </div>
-    );
-  }
-  // default: "text"
-  return <p className="text-base text-foreground leading-relaxed my-1">{textContent}</p>;
-}
-
-// ─── Board Step Renderer ──────────────────────────────────────────────────────
-function BoardStep({ blocks, activeWordIndex }: { blocks: BoardBlock[]; activeWordIndex: number }) {
-  let currentBaseIndex = 0;
-  return (
-    <div className="space-y-1 mb-6">
-      {blocks.map((block, i) => {
-        const wordCount = block.content.split(" ").length;
-        const baseIndex = currentBaseIndex;
-        currentBaseIndex += wordCount;
-        return (
-          <div key={i} className="animate-in fade-in duration-300">
-            <BoardBlockRenderer block={block} baseWordIndex={baseIndex} activeWordIndex={activeWordIndex} />
-          </div>
         );
       })}
     </div>
@@ -219,14 +145,13 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     }
     const audio = new Audio(url);
     
-    // Slow down playback for teaching pace, and preserve pitch
-    audio.playbackRate = 0.85;
-    (audio as any).preservesPitch = true;
-    if ("mozPreservesPitch" in audio) (audio as any).mozPreservesPitch = true;
+    // Natural teaching pace should be handled by LLM punctuation now
+    audio.playbackRate = 1.0;
 
     audioRef.current = audio;
     
-    const totalWords = step.boardContent.reduce((sum, block) => sum + block.content.split(" ").length, 0);
+    const cleanText = step.speechText.replace(/<[^>]+>/g, '').trim();
+    const totalWords = cleanText.split(/\s+/).length;
 
     audio.onplay = () => {
       setBoardActiveWordIndex(0);
@@ -302,9 +227,6 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     setStatusText("AI javob tayyorlamoqda...");
 
     const currentStep = stepsRef.current[currentStepRef.current];
-    const contextBoard = currentStep?.boardContent
-      .map(b => `${b.type}: ${b.content}`)
-      .join("\n") || "";
 
     try {
       const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || "";
@@ -319,7 +241,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
           messages: [
             {
               role: "system",
-              content: `You are an AI grammar teacher giving a lesson. The current lesson step board content is:\n${contextBoard}\n\nThe teacher just said: "${currentStep?.speechText}"\n\nAnswer the student's question concisely (2-4 sentences). Stay on topic, be encouraging and clear. Use plain text only, no markdown.`
+              content: `You are an AI grammar teacher giving a lesson. The current lesson text on the board is:\n"${currentStep?.speechText}"\n\nAnswer the student's question concisely (2-4 sentences). Stay on topic, be encouraging and clear. Use plain text only, no markdown.`
             },
             { role: "user", content: question }
           ],
@@ -453,14 +375,12 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
               role: "system",
               content: `You are an English grammar teacher creating an interactive lesson. Generate a lesson plan as a JSON array of steps. Each step has:
 - id: unique string
-- boardContent: array of board blocks (each with type and content)
-- speechText: what the teacher says while this board content appears
+- speechText: the EXACT text the teacher says, which is also written directly on the board.
 
-Board block types: "heading", "text", "highlight" (colored background), "bold", "underline", "icon" (prefix content with ✓ for correct or ✗ for wrong examples), "diagram-note" (annotation/connection note)
+CRITICAL INSTRUCTION: Write it the way a teacher actually paces an explanation. Use shorter sentences. Use natural pauses via punctuation (e.g. use commas, periods, ellipses "..." and em-dashes "—" where a teacher would deliberately let something sink in before continuing). 
+Do NOT use markdown or complex formatting. Keep it plain text.
 
-Make 6-8 steps. Be educational, clear, and use real English grammar examples. Use variety in block types to keep the board visually interesting.
-
-Output ONLY a valid JSON array, no markdown fences, no extra text.`
+Make 4-6 steps. Be educational, clear, and use real English grammar examples. Output ONLY a valid JSON array.`
             },
             {
               role: "user",
@@ -645,31 +565,23 @@ Output ONLY a valid JSON array, no markdown fences, no extra text.`
             )}
 
             {/* Whiteboard */}
-            <div className="bg-[#FDFDF9] dark:bg-neutral-800 border border-border/50 rounded-2xl shadow-xl overflow-hidden mb-6 mx-auto w-full max-w-4xl relative">
+            <div className="bg-[#FDFDF9] dark:bg-neutral-800 rounded-[2rem] shadow-2xl overflow-hidden mb-6 mx-auto w-full relative min-h-[70vh] flex flex-col border border-border/20">
               {/* Board content */}
-              <div className="p-8 sm:p-12 min-h-[400px] font-sans text-slate-800 dark:text-neutral-100 leading-relaxed text-lg flex flex-col justify-end">
+              <div className="p-8 sm:p-14 font-sans text-slate-800 dark:text-neutral-100 flex-1 flex flex-col justify-end">
                 {/* Auto-scroll container */}
-                <div className="max-h-[500px] overflow-y-auto pr-4 scroll-smooth" ref={boardScrollRef}>
+                <div className="overflow-y-auto pr-4 scroll-smooth max-h-full" ref={boardScrollRef}>
                   {steps.slice(0, currentStepIndex + 1).map((step, idx) => {
                     const isCurrent = idx === currentStepIndex;
                     return (
                       <BoardStep 
                         key={step.id}
-                        blocks={step.boardContent}
+                        text={step.speechText}
                         activeWordIndex={isCurrent ? boardActiveWordIndex : -1}
                       />
                     );
                   })}
                 </div>
               </div>
-            </div>
-
-            {/* Speech text */}
-            <div className="flex items-start gap-3 px-4 py-3 bg-card rounded-xl border border-border">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-primary">AI</span>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{currentStep.speechText}</p>
             </div>
 
             {/* Hint */}
