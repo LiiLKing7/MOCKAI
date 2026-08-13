@@ -4,9 +4,32 @@ import { Button } from "@/components/ui/button";
 import { PageProps } from "../App";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+type TextSpan = {
+  text: string;
+  emphasis?: "bold" | "highlight" | "none";
+};
+
+type BoardBlock =
+  | { type: "heading"; content: string }
+  | { type: "paragraph"; spans: TextSpan[] }
+  | { type: "table"; headers: string[]; rows: string[][] }
+  | { type: "example-badge"; content: string }
+  | { type: "icon-note"; icon: string; content: string };
+
 interface LessonStep {
   id: string;
   speechText: string;
+  boardContent: BoardBlock[];
+}
+
+// ─── TTS Sanitizer ────────────────────────────────────────────────────────────
+function sanitizeForTTS(text: string): string {
+  return text
+    .replace(/[*#_~`]/g, '')      // strip markdown symbols
+    .replace(/\//g, ' or ')       // "am/is/are" → "am or is or are"
+    .replace(/\s{2,}/g, ' ')      // collapse double spaces
+    .replace(/<[^>]+>/g, '')       // strip any stray HTML/SSML
+    .trim();
 }
 
 type LessonState =
@@ -39,28 +62,122 @@ const VOICE_MODELS = [
   { id: "aura-orion-en", name: "Orion (Male)" },
 ];
 
-// ─── Board Step Renderer ──────────────────────────────────────────────────────
-function BoardStep({ text, activeWordIndex }: { text: string; activeWordIndex: number }) {
-  // Strip any SSML just in case LLM generates it, though we asked for punctuation
-  const cleanText = text.replace(/<[^>]+>/g, '').trim();
-  const words = cleanText.split(/\s+/);
-  
+// ─── Board Block Renderers ────────────────────────────────────────────────────
+
+function ParagraphBlock({ spans, baseWordIndex, activeWordIndex }: { spans: TextSpan[]; baseWordIndex: number; activeWordIndex: number }) {
+  let wordOffset = 0;
   return (
-    <div className="mb-8 leading-relaxed text-2xl font-sans">
-      {words.map((word, i) => {
-        const isRevealed = activeWordIndex === -1 || i <= activeWordIndex;
-        const isHighlighted = i === activeWordIndex;
-        
-        return (
-          <span key={i}>
-            <span 
-              className={`inline-block transition-all duration-300 ${isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${isHighlighted ? "bg-amber-200/50 dark:bg-amber-500/30 rounded px-1" : ""}`}
-            >
-              {word}
-            </span>
-            {i < words.length - 1 && " "}
+    <p className="text-lg leading-relaxed my-2 text-slate-800 dark:text-neutral-100">
+      {spans.map((span, si) => {
+        const words = span.text.split(/\s+/).filter(Boolean);
+        const spanStart = baseWordIndex + wordOffset;
+        const result = (
+          <span key={si} className={`${span.emphasis === 'bold' ? 'font-bold' : ''} ${span.emphasis === 'highlight' ? 'bg-sky-200/60 dark:bg-sky-700/40 rounded px-0.5' : ''}`}>
+            {words.map((word, wi) => {
+              const absIdx = spanStart + wi;
+              const isRevealed = activeWordIndex === -1 || absIdx <= activeWordIndex;
+              const isKaraoke = absIdx === activeWordIndex;
+              return (
+                <span key={wi}>
+                  <span className={`inline-block transition-all duration-300 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'} ${isKaraoke ? 'bg-amber-200/50 dark:bg-amber-500/30 rounded px-0.5' : ''}`}>
+                    {word}
+                  </span>
+                  {wi < words.length - 1 && ' '}
+                </span>
+              );
+            })}
+            {si < spans.length - 1 && ' '}
           </span>
         );
+        wordOffset += words.length;
+        return result;
+      })}
+    </p>
+  );
+}
+
+function HeadingBlock({ content }: { content: string }) {
+  return (
+    <h3 className="text-xl font-bold mt-6 mb-2 flex items-center gap-2 text-slate-900 dark:text-neutral-50">
+      <span className="w-1.5 h-6 rounded-full bg-primary inline-block" />
+      {content}
+    </h3>
+  );
+}
+
+function TableBlock({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <div className="my-4 overflow-x-auto">
+      <table className="w-full border-collapse text-base">
+        <thead>
+          <tr>
+            {headers.map((h, i) => (
+              <th key={i} className="text-left px-4 py-2 border-b-2 border-slate-300 dark:border-neutral-600 text-slate-700 dark:text-neutral-200 font-semibold bg-slate-50/50 dark:bg-neutral-700/30">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="border-b border-slate-200 dark:border-neutral-700">
+              {row.map((cell, ci) => (
+                <td key={ci} className="px-4 py-2 text-slate-700 dark:text-neutral-200">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ExampleBadge({ content }: { content: string }) {
+  return (
+    <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-800/30 dark:text-amber-200 text-sm font-medium mr-2 mb-2">
+      {content}
+    </span>
+  );
+}
+
+function IconNote({ icon, content }: { icon: string; content: string }) {
+  return (
+    <div className="flex items-start gap-2 my-2 pl-2">
+      <span className="text-lg shrink-0">{icon}</span>
+      <span className="text-sm text-slate-600 dark:text-neutral-300 italic">{content}</span>
+    </div>
+  );
+}
+
+// ─── Board Step Renderer ──────────────────────────────────────────────────────
+function BoardStepView({ step, activeWordIndex }: { step: LessonStep; activeWordIndex: number }) {
+  // Only paragraph blocks participate in karaoke — count words to compute per-block base offset
+  let paragraphWordOffset = 0;
+  
+  return (
+    <div className="mb-8">
+      {step.boardContent.map((block, i) => {
+        if (block.type === 'heading') {
+          return <HeadingBlock key={i} content={block.content} />;
+        }
+        if (block.type === 'paragraph') {
+          const totalWordsInBlock = block.spans.reduce((sum, s) => sum + s.text.split(/\s+/).filter(Boolean).length, 0);
+          const base = paragraphWordOffset;
+          paragraphWordOffset += totalWordsInBlock;
+          return <ParagraphBlock key={i} spans={block.spans} baseWordIndex={base} activeWordIndex={activeWordIndex} />;
+        }
+        if (block.type === 'table') {
+          return <TableBlock key={i} headers={block.headers} rows={block.rows} />;
+        }
+        if (block.type === 'example-badge') {
+          return <ExampleBadge key={i} content={block.content} />;
+        }
+        if (block.type === 'icon-note') {
+          return <IconNote key={i} icon={block.icon} content={block.content} />;
+        }
+        return null;
       })}
     </div>
   );
@@ -101,6 +218,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
 
   // ── TTS ──────────────────────────────────────────────────────────────────────
   const fetchAudio = async (text: string, signal?: AbortSignal): Promise<string> => {
+    const cleanText = sanitizeForTTS(text);
     const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
     const res = await fetch(`https://api.deepgram.com/v1/speak?model=${selectedVoice}`, {
       method: "POST",
@@ -108,7 +226,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
         "Authorization": `Token ${apiKey}`,
         "Content-Type": "application/json" 
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: cleanText }),
       signal,
     });
     if (!res.ok) throw new Error("TTS failed");
@@ -150,8 +268,8 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
 
     audioRef.current = audio;
     
-    const cleanText = step.speechText.replace(/<[^>]+>/g, '').trim();
-    const totalWords = cleanText.split(/\s+/).length;
+    const cleanText = sanitizeForTTS(step.speechText);
+    const totalWords = cleanText.split(/\s+/).filter(Boolean).length;
 
     audio.onplay = () => {
       setBoardActiveWordIndex(0);
@@ -373,14 +491,24 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
           messages: [
             {
               role: "system",
-              content: `You are an English grammar teacher creating an interactive lesson. Generate a lesson plan as a JSON array of steps. Each step has:
-- id: unique string
-- speechText: the EXACT text the teacher says, which is also written directly on the board.
+              content: `You are an English grammar teacher creating an interactive whiteboard lesson. Generate a lesson plan as a JSON array of steps.
 
-CRITICAL INSTRUCTION: Write it the way a teacher actually paces an explanation. Use shorter sentences. Use natural pauses via punctuation (e.g. use commas, periods, ellipses "..." and em-dashes "—" where a teacher would deliberately let something sink in before continuing). 
-Do NOT use markdown or complex formatting. Keep it plain text.
+Each step has:
+- "id": unique string
+- "speechText": clean narration the teacher speaks aloud. MUST contain ONLY natural words and standard punctuation (. , ? ! ... —). NEVER use symbols like * # _ / or markdown formatting. Write out words instead (e.g. "am, is, or are" NOT "am/is/are").
+- "boardContent": array of visual board blocks. Block types:
+  {"type":"heading","content":"..."}
+  {"type":"paragraph","spans":[{"text":"...","emphasis":"bold|highlight|none"},...]}  — the paragraph text should closely mirror speechText so karaoke word-highlighting works. Use emphasis for key grammar terms.
+  {"type":"table","headers":[...],"rows":[[...],...]}  — for conjugation tables, comparisons, etc. NOT read by TTS.
+  {"type":"example-badge","content":"..."}  — short reference chips. NOT read by TTS.
+  {"type":"icon-note","icon":"emoji","content":"..."}  — brief supporting notes. NOT read by TTS.
 
-Make 4-6 steps. Be educational, clear, and use real English grammar examples. Output ONLY a valid JSON array.`
+IMPORTANT RULES:
+1. speechText is ONLY for spoken narration. Never put table data, badge text, or symbols in it.
+2. paragraph spans mirror speechText for visual word-sync. Tables and badges are supplementary visuals.
+3. Use shorter sentences with natural pauses (commas, periods, ellipses).
+4. Make 4-6 steps. Be educational, clear, use real examples.
+5. Output ONLY a valid JSON array, no markdown fences.`
             },
             {
               role: "user",
@@ -573,9 +701,9 @@ Make 4-6 steps. Be educational, clear, and use real English grammar examples. Ou
                   {steps.slice(0, currentStepIndex + 1).map((step, idx) => {
                     const isCurrent = idx === currentStepIndex;
                     return (
-                      <BoardStep 
+                      <BoardStepView 
                         key={step.id}
-                        text={step.speechText}
+                        step={step}
                         activeWordIndex={isCurrent ? boardActiveWordIndex : -1}
                       />
                     );
