@@ -509,7 +509,10 @@ IMPORTANT RULES:
 
                 const splitMatch = currentSentence.match(/^(.*?[.!?\n])(\s+.*)?$/);
                 if (splitMatch && splitMatch[1].trim().length > 3) {
-                  fetchAndQueueAudio(splitMatch[1].trim());
+                  const sentenceToSpeak = splitMatch[1].trim().replace(/<function[^>]*>.*?<\/function>/gs, "");
+                  if (sentenceToSpeak.length > 3) {
+                    fetchAndQueueAudio(sentenceToSpeak);
+                  }
                   currentSentence = splitMatch[2] ? splitMatch[2].trimStart() : "";
                 }
               } catch (e) { }
@@ -559,8 +562,9 @@ IMPORTANT RULES:
          }
       }
 
-      if (currentSentence.trim().length > 0) {
-        fetchAndQueueAudio(currentSentence.trim());
+      const finalSentenceToSpeak = currentSentence.trim().replace(/<function[^>]*>.*?<\/function>/gs, "");
+      if (finalSentenceToSpeak.length > 0) {
+        fetchAndQueueAudio(finalSentenceToSpeak);
       }
 
       isGeneratingRef.current = false;
@@ -1216,7 +1220,9 @@ IMPORTANT RULES:
                   ? "bg-primary text-primary-foreground rounded-tr-none"
                   : "bg-muted text-foreground rounded-tl-none"
                 }`}>
-                <p className="leading-relaxed text-sm">{msg.content}</p>
+                <p className="leading-relaxed text-sm">
+                  {msg.content.replace(/<function[^>]*>.*?<\/function>/gs, "")}
+                </p>
                 {msg.feedback && (
                   <div className="mt-2 text-xs bg-black/10 dark:bg-black/30 p-2 rounded border border-border italic text-foreground">
                     💡 {msg.feedback}
