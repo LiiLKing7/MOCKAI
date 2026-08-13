@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import Strands from "@/components/ui/strands";
 import { GlassButton } from "@/components/ui/glass-button";
-import AutoTextReveal from "@/components/ui/AutoTextReveal";
+import Teleprompter, { TeleprompterItem } from "@/components/ui/Teleprompter";
 import TextReveal from "@/components/ui/TextReveal";
 import { DebugOverlay } from "@/components/ui/DebugOverlay";
 import { ViewState } from "../App";
@@ -75,7 +75,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentlySpeakingText, setCurrentlySpeakingText] = useState("");
+  const [teleprompterItems, setTeleprompterItems] = useState<TeleprompterItem[]>([]);
 
   // Refs for callbacks to access latest state
   const isThinkingRef = useRef(false);
@@ -88,7 +88,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const selectedModelRef = useRef(AI_MODELS[0].id);
   const selectedVoiceRef = useRef(VOICE_MODELS[0].id);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioQueueRef = useRef<{ url: string | null, ready: boolean, text?: string }[]>([]);
+  const audioQueueRef = useRef<{ id: string, url: string | null, ready: boolean, text?: string }[]>([]);
   const isPlayingAudioRef = useRef(false);
   const isGeneratingRef = useRef(false);
   const mockPartTurnCountRef = useRef(0);
@@ -159,7 +159,8 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   }, [messages, finalizedTranscript, isThinking]);
 
   const fetchAndQueueAudio = async (textToSpeak: string) => {
-    const queueItem = { url: null as string | null, ready: false, text: textToSpeak };
+    const id = Date.now().toString() + Math.random().toString();
+    const queueItem = { id, url: null as string | null, ready: false, text: textToSpeak };
     audioQueueRef.current.push(queueItem);
 
     try {
@@ -192,7 +193,16 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const checkFinishedSpeaking = () => {
     if (audioQueueRef.current.length === 0 && !isPlayingAudioRef.current && !isGeneratingRef.current) {
       setSpeaking(false);
-      setCurrentlySpeakingText("");
+      setTeleprompterItems(prev => {
+        const oldCurrent = prev.find(i => i.status === 'current');
+        if (oldCurrent) {
+          setTimeout(() => {
+            setTeleprompterItems(curr => curr.filter(i => i.id !== oldCurrent.id));
+          }, 1500);
+          return [{ ...oldCurrent, status: 'past' }];
+        }
+        return [];
+      });
       if (modeRef.current === "mock" && mockPart2StateRef.current === "intro") {
         setMockPart2State("prep");
         setMockTimeLeft(60);
@@ -214,7 +224,20 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
     }
 
     isPlayingAudioRef.current = true;
-    if (nextItem.text) setCurrentlySpeakingText(nextItem.text);
+    const currentId = nextItem.id;
+    
+    setTeleprompterItems(prev => {
+      const oldCurrent = prev.find(i => i.status === 'current');
+      const nextItems: TeleprompterItem[] = [{ id: currentId, text: nextItem.text || "", status: 'current' }];
+      if (oldCurrent) {
+        nextItems.push({ ...oldCurrent, status: 'past' });
+        setTimeout(() => {
+          setTeleprompterItems(curr => curr.filter(i => i.id !== oldCurrent.id));
+        }, 1500);
+      }
+      return nextItems;
+    });
+    
     const audio = new Audio(nextItem.url);
     audioRef.current = audio;
 
@@ -594,7 +617,7 @@ IMPORTANT RULES:
   const startSession = async () => {
     try {
       setMessages([]);
-      setCurrentlySpeakingText("");
+      setTeleprompterItems([]);
       setFinalizedTranscript("");
       setLiveInterimText("");
       utteranceRef.current = "";
@@ -780,7 +803,7 @@ IMPORTANT RULES:
     setMicReadyState("closed");
     setThinking(false);
     setSpeaking(false);
-    setCurrentlySpeakingText("");
+    setTeleprompterItems([]);
   };
 
   const finishPractice = () => {
@@ -1162,17 +1185,9 @@ IMPORTANT RULES:
           />
         </div>
 
-        {currentlySpeakingText && mode === "practice" && (
+        {teleprompterItems.length > 0 && mode === "practice" && (
           <div className="absolute bottom-32 left-0 right-0 z-20 flex justify-center pointer-events-none px-6">
-            <AutoTextReveal
-              baseOpacity={0}
-              enableBlur={true}
-              baseRotation={5}
-              blurStrength={10}
-              textClassName="text-foreground/90 text-center"
-            >
-              {currentlySpeakingText}
-            </AutoTextReveal>
+            <Teleprompter items={teleprompterItems} />
           </div>
         )}
 

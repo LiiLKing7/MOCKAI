@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SkillSelector } from "@/components/skill-selector";
 import { PageProps } from "../App";
-import { BookOpen, Moon, Sun } from "lucide-react";
+import { BookOpen, Moon, Sun, User } from "lucide-react";
 
 export default function Dashboard({ onNavigate, theme, toggleTheme }: PageProps) {
   const [isStarted, setIsStarted] = useState(false);
@@ -21,6 +21,9 @@ export default function Dashboard({ onNavigate, theme, toggleTheme }: PageProps)
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => onNavigate("listening-maker")}>
             Listening Maker
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onNavigate("profile")} title="User Profile">
+            <User className="w-5 h-5" />
           </Button>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
