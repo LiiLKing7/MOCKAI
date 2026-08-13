@@ -19,6 +19,9 @@ export default function Dashboard({ onNavigate, theme, toggleTheme }: PageProps)
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => onNavigate("listening-maker")}>
+            Listening Maker
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>
