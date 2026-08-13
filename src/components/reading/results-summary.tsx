@@ -3,15 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ViewState } from "../../App";
+import { AICoachingCards } from "@/components/reading/ai-coaching-cards";
 
 interface ResultsSummaryProps {
   parts: ReadingPart[];
   answers: Record<string, string>;
   onNavigate: (view: ViewState) => void;
   onReview?: () => void;
+  onReviewQuestion?: (partId: string, questionIndex: number) => void;
 }
 
-export function ResultsSummary({ parts, answers, onNavigate, onReview }: ResultsSummaryProps) {
+export function ResultsSummary({ parts, answers, onNavigate, onReview, onReviewQuestion }: ResultsSummaryProps) {
   let totalOverallQuestions = 0;
   let totalOverallCorrect = 0;
 
@@ -92,18 +94,24 @@ export function ResultsSummary({ parts, answers, onNavigate, onReview }: Results
             </div>
           </div>
 
-          <div className="mt-8 w-full space-y-3 pt-4 border-t">
-            {onReview && (
-              <Button className="w-full" size="lg" variant="default" onClick={onReview}>
-                Javoblarni ko'rib chiqish
-              </Button>
+            {onReviewQuestion && (
+              <div className="w-full mt-2">
+                <AICoachingCards parts={parts} answers={answers} onReviewQuestion={onReviewQuestion} />
+              </div>
             )}
-            <Button className="w-full" size="lg" variant={onReview ? "outline" : "default"} onClick={() => onNavigate("dashboard")}>
-              Bosh sahifaga qaytish
-            </Button>
+
+            <div className="mt-8 w-full space-y-3 pt-4 border-t">
+              {onReview && (
+                <Button className="w-full" size="lg" variant="default" onClick={onReview}>
+                  Javoblarni ko'rib chiqish
+                </Button>
+              )}
+              <Button className="w-full" size="lg" variant={onReview ? "outline" : "default"} onClick={() => onNavigate("dashboard")}>
+                Bosh sahifaga qaytish
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
+        </Card>
+      </div>
+    );
+  }

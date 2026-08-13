@@ -134,6 +134,11 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
           setActiveTab(parts[0].id);
           setReviewQuestionIndex(0);
         }}
+        onReviewQuestion={(partId, questionIndex) => {
+          setIsReviewMode(true);
+          setActiveTab(partId);
+          setReviewQuestionIndex(questionIndex);
+        }}
       />
     );
   }
