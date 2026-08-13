@@ -12,21 +12,10 @@ import {
 } from '../lib/audio-utils';
 
 export default function ListeningMaker({ onNavigate, theme, toggleTheme }: PageProps) {
-  const [apiKey, setApiKey] = useState('');
+  const apiKey = (import.meta as any).env.VITE_DEEPGRAM_API_KEY || "";
   const [blocks, setBlocks] = useState<AudioBlock[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('deepgram_api_key');
-    if (savedKey) setApiKey(savedKey);
-  }, []);
-
-  const handleSaveKey = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setApiKey(val);
-    localStorage.setItem('deepgram_api_key', val);
-  };
 
   const addTtsBlock = () => {
     setBlocks([...blocks, { 
@@ -145,16 +134,7 @@ export default function ListeningMaker({ onNavigate, theme, toggleTheme }: PageP
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative flex items-center">
-            <Settings className="w-4 h-4 absolute left-3 text-muted-foreground" />
-            <input 
-              type="password" 
-              placeholder="Deepgram API Key" 
-              value={apiKey}
-              onChange={handleSaveKey}
-              className="pl-9 pr-3 py-1.5 text-sm bg-muted border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary w-64"
-            />
-          </div>
+
           <Button variant="default" onClick={handleExportWav} disabled={isProcessing}>
             {isProcessing ? 'Processing...' : (
               <>
