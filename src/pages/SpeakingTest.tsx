@@ -3,8 +3,9 @@ import { Mic, Square, Loader2, Volume2, User, Bot, ChevronLeft, ChevronRight, Cl
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import Strands from "@/components/ui/strands";
-import TextReveal from "@/components/ui/TextReveal";
 import { GlassButton } from "@/components/ui/glass-button";
+import AutoTextReveal from "@/components/ui/AutoTextReveal";
+import TextReveal from "@/components/ui/TextReveal";
 import { DebugOverlay } from "@/components/ui/DebugOverlay";
 import { ViewState } from "../App";
 
@@ -70,11 +71,11 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const mockPart2StateRef = useRef(mockPart2State);
   useEffect(() => { mockPart2StateRef.current = mockPart2State; }, [mockPart2State]);
 
-  // UI states
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentlySpeakingText, setCurrentlySpeakingText] = useState("");
 
   // Refs for callbacks to access latest state
   const isThinkingRef = useRef(false);
@@ -87,7 +88,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const selectedModelRef = useRef(AI_MODELS[0].id);
   const selectedVoiceRef = useRef(VOICE_MODELS[0].id);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioQueueRef = useRef<{ url: string | null, ready: boolean }[]>([]);
+  const audioQueueRef = useRef<{ url: string | null, ready: boolean, text?: string }[]>([]);
   const isPlayingAudioRef = useRef(false);
   const isGeneratingRef = useRef(false);
   const mockPartTurnCountRef = useRef(0);
@@ -158,7 +159,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   }, [messages, finalizedTranscript, isThinking]);
 
   const fetchAndQueueAudio = async (textToSpeak: string) => {
-    const queueItem = { url: null as string | null, ready: false };
+    const queueItem = { url: null as string | null, ready: false, text: textToSpeak };
     audioQueueRef.current.push(queueItem);
 
     try {
@@ -191,6 +192,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   const checkFinishedSpeaking = () => {
     if (audioQueueRef.current.length === 0 && !isPlayingAudioRef.current && !isGeneratingRef.current) {
       setSpeaking(false);
+      setCurrentlySpeakingText("");
       if (modeRef.current === "mock" && mockPart2StateRef.current === "intro") {
         setMockPart2State("prep");
         setMockTimeLeft(60);
@@ -212,6 +214,7 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
     }
 
     isPlayingAudioRef.current = true;
+    if (nextItem.text) setCurrentlySpeakingText(nextItem.text);
     const audio = new Audio(nextItem.url);
     audioRef.current = audio;
 
@@ -591,6 +594,7 @@ IMPORTANT RULES:
   const startSession = async () => {
     try {
       setMessages([]);
+      setCurrentlySpeakingText("");
       setFinalizedTranscript("");
       setLiveInterimText("");
       utteranceRef.current = "";
@@ -776,6 +780,7 @@ IMPORTANT RULES:
     setMicReadyState("closed");
     setThinking(false);
     setSpeaking(false);
+    setCurrentlySpeakingText("");
   };
 
   const finishPractice = () => {
@@ -1156,6 +1161,20 @@ IMPORTANT RULES:
             audioVolumeRef={audioVolumeRef}
           />
         </div>
+
+        {currentlySpeakingText && mode === "practice" && (
+          <div className="absolute bottom-32 left-0 right-0 z-20 flex justify-center pointer-events-none px-6">
+            <AutoTextReveal
+              baseOpacity={0}
+              enableBlur={true}
+              baseRotation={5}
+              blurStrength={10}
+              textClassName="text-foreground/90 text-center"
+            >
+              {currentlySpeakingText}
+            </AutoTextReveal>
+          </div>
+        )}
 
         {/* Task Instructions Card for all parts */}
         {mode === "mock" && mockPart !== "assessment" && (
