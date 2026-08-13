@@ -827,7 +827,7 @@ IMPORTANT RULES:
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-all cursor-pointer group" onClick={() => setMode("practice_setup")}>
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Mic className="w-8 h-8 text-primary" />
+                <Mic className="w-8 h-8 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold mb-4">Practice</h2>
               <p className="text-muted-foreground mb-8">Free conversation, grammar tips, and flexible difficulty. Work on your speaking by talking about any topic.</p>
@@ -836,7 +836,7 @@ IMPORTANT RULES:
 
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-all cursor-pointer group" onClick={() => setMode("mock_setup")}>
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Square className="w-8 h-8 text-primary" />
+                <Square className="w-8 h-8 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold mb-4">Mock Test</h2>
               <p className="text-muted-foreground mb-8">3-part real IELTS/CEFR Multilevel exam format. Preparation time, timers, and detailed assessment at the end.</p>
@@ -960,11 +960,11 @@ IMPORTANT RULES:
             <div className="grid md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
               <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
                 <p className="text-muted-foreground mb-2">Time (minutes)</p>
-                <h3 className="text-4xl font-bold text-primary">{practiceStats.durationMins}</h3>
+                <h3 className="text-4xl font-bold text-foreground">{practiceStats.durationMins}</h3>
               </div>
               <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
                 <p className="text-muted-foreground mb-2">Speed (WPM)</p>
-                <h3 className="text-4xl font-bold text-primary">{practiceStats.wpm}</h3>
+                <h3 className="text-4xl font-bold text-foreground">{practiceStats.wpm}</h3>
               </div>
               <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-xl text-center">
                 <p className="text-muted-foreground mb-2">Filler Words</p>
@@ -987,7 +987,7 @@ IMPORTANT RULES:
           <h2 className="text-4xl font-bold font-heading mb-8">Test Results (Assessment)</h2>
 
           {!assessmentResult ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-primary">
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-foreground">
               <Loader2 className="w-12 h-12 animate-spin" />
               <p className="text-xl font-medium">Evaluating results (Claude 3.5 Sonnet)...</p>
             </div>
@@ -1051,7 +1051,7 @@ IMPORTANT RULES:
         >
           {mockPart2State === "prep" ? (
             <div className="text-center animate-in fade-in zoom-in duration-500">
-              <div className="flex items-center justify-center gap-3 text-primary mb-4">
+              <div className="flex items-center justify-center gap-3 text-foreground mb-4">
                 <Clock className="w-10 h-10" />
                 <h2 className="text-5xl font-bold">00:{mockTimeLeft.toString().padStart(2, '0')}</h2>
               </div>
@@ -1069,7 +1069,7 @@ IMPORTANT RULES:
           ) : (
             <div className="flex gap-8 items-center animate-in slide-in-from-top-10 fade-in duration-500">
               <div className="flex flex-col items-center">
-                <div className={`flex items-center gap-2 text-3xl font-bold mb-1 ${mockTimeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-primary'}`}>
+                <div className={`flex items-center gap-2 text-3xl font-bold mb-1 ${mockTimeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-foreground'}`}>
                   <Clock className="w-6 h-6" />
                   <span>0{Math.floor(mockTimeLeft / 60)}:{(mockTimeLeft % 60).toString().padStart(2, '0')}</span>
                 </div>
@@ -1173,7 +1173,7 @@ IMPORTANT RULES:
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
           {!isRecording ? (
             <GlassButton onClick={startSession}>
-              <Mic className="w-5 h-5 text-primary" />
+              <Mic className="w-5 h-5 text-foreground" />
               Start
             </GlassButton>
           ) : (
@@ -1209,7 +1209,7 @@ IMPORTANT RULES:
             <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Bot className="w-5 h-5 text-primary" />
+                  <Bot className="w-5 h-5 text-foreground" />
                 </div>
               )}
               <div className={`p-4 rounded-xl max-w-[85%] ${msg.role === "user"
@@ -1218,7 +1218,7 @@ IMPORTANT RULES:
                 }`}>
                 <p className="leading-relaxed text-sm">{msg.content}</p>
                 {msg.feedback && (
-                  <div className="mt-2 text-xs bg-black/10 dark:bg-black/30 p-2 rounded border border-border italic text-primary">
+                  <div className="mt-2 text-xs bg-black/10 dark:bg-black/30 p-2 rounded border border-border italic text-foreground">
                     💡 {msg.feedback}
                   </div>
                 )}
@@ -1253,16 +1253,16 @@ IMPORTANT RULES:
           {isThinking && (
             <div className="flex gap-3 justify-start items-center text-muted-foreground p-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                <Loader2 className="w-5 h-5 text-foreground animate-spin" />
               </div>
               <span className="text-sm">Thinking...</span>
             </div>
           )}
 
           {isSearching && (
-            <div className="flex gap-3 justify-start items-center text-primary p-2 animate-pulse">
+            <div className="flex gap-3 justify-start items-center text-foreground p-2 animate-pulse">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Search className="w-5 h-5 text-primary" />
+                <Search className="w-5 h-5 text-foreground" />
               </div>
               <span className="text-sm italic">
                 🔍 "{searchQuery || 'Searching...'}" bo'yicha internetdan qidiryapman...
@@ -1271,9 +1271,9 @@ IMPORTANT RULES:
           )}
 
           {isSpeaking && (
-            <div className="flex gap-3 justify-start items-center text-primary p-2">
+            <div className="flex gap-3 justify-start items-center text-foreground p-2">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 animate-pulse">
-                <Volume2 className="w-5 h-5 text-primary" />
+                <Volume2 className="w-5 h-5 text-foreground" />
               </div>
               <span className="text-sm font-medium">Speaking...</span>
             </div>

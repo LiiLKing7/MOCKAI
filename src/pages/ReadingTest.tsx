@@ -166,7 +166,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
             className="flex items-center gap-2 cursor-pointer w-full md:w-auto z-10" 
             onClick={() => onNavigate("dashboard")}
           >
-            <BookOpen className="w-6 h-6 text-primary shrink-0" />
+            <BookOpen className="w-6 h-6 text-foreground shrink-0" />
             <h1 className="text-xl font-heading font-semibold text-foreground truncate hidden md:block">
               CEFR Multilevel Mock Platform
             </h1>

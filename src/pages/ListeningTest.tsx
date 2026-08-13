@@ -81,7 +81,7 @@ export default function ListeningTestPage({ onNavigate, theme, toggleTheme }: Pa
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background">
         <div className="max-w-md w-full space-y-6 text-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Headphones className="w-10 h-10 text-primary" />
+            <Headphones className="w-10 h-10 text-foreground" />
           </div>
           <h1 className="text-3xl font-heading font-bold">Listening Test</h1>
           <p className="text-muted-foreground text-lg">
@@ -118,7 +118,7 @@ export default function ListeningTestPage({ onNavigate, theme, toggleTheme }: Pa
           <div className="grid grid-cols-3 gap-4">
             <div className="p-6 bg-card border rounded-2xl shadow-sm">
               <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Score</p>
-              <p className="text-4xl font-black text-primary">{score}/{total}</p>
+              <p className="text-4xl font-black text-foreground">{score}/{total}</p>
             </div>
             <div className="p-6 bg-card border rounded-2xl shadow-sm">
               <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Percentage</p>
@@ -171,7 +171,7 @@ export default function ListeningTestPage({ onNavigate, theme, toggleTheme }: Pa
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
-              <Headphones className="w-5 h-5 text-primary" />
+              <Headphones className="w-5 h-5 text-foreground" />
               <h1 className="text-lg font-semibold hidden sm:inline-block">Listening Test</h1>
             </div>
           </div>
@@ -209,7 +209,7 @@ export default function ListeningTestPage({ onNavigate, theme, toggleTheme }: Pa
           {currentPart.questions.map((q) => (
             <div key={q.id} className="bg-card border rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-medium mb-4 flex items-start gap-3">
-                <span className="flex items-center justify-center bg-primary/10 text-primary rounded-full w-8 h-8 shrink-0 text-sm font-bold">
+                <span className="flex items-center justify-center bg-primary/10 text-foreground rounded-full w-8 h-8 shrink-0 text-sm font-bold">
                   {q.number}
                 </span>
                 <span className="mt-1">{q.question}</span>
