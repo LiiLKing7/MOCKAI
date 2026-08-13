@@ -49,18 +49,27 @@ const VOICE_MODELS = [
 ];
 
 // ─── BoardBlock Renderer ──────────────────────────────────────────────────────
-function BoardBlockRenderer({ block, revealed }: { block: BoardBlock; revealed: number }) {
-  const chars = block.content.split("");
-  const visibleChars = chars.slice(0, Math.floor(revealed * chars.length));
-
+function BoardBlockRenderer({ block, baseWordIndex, activeWordIndex }: { block: BoardBlock; baseWordIndex: number; activeWordIndex: number }) {
+  const words = block.content.split(" ");
+  
   const textContent = (
     <span>
-      {visibleChars.map((c, i) => (
-        <span key={i}>{c}</span>
-      ))}
-      {revealed < 1 && (
-        <span className="inline-block w-0.5 h-4 bg-current animate-[caret-blink_1s_ease-out_infinite] align-middle ml-0.5" />
-      )}
+      {words.map((word, i) => {
+        const absoluteIdx = baseWordIndex + i;
+        const isRevealed = activeWordIndex === -1 || absoluteIdx <= activeWordIndex;
+        const isHighlighted = absoluteIdx === activeWordIndex;
+        
+        return (
+          <span key={i}>
+            <span 
+              className={`inline-block transition-all duration-300 ${isRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"} ${isHighlighted ? "bg-amber-200/50 dark:bg-amber-500/30 rounded" : ""}`}
+            >
+              {word}
+            </span>
+            {i < words.length - 1 && " "}
+          </span>
+        );
+      })}
     </span>
   );
 
@@ -113,18 +122,17 @@ function BoardBlockRenderer({ block, revealed }: { block: BoardBlock; revealed: 
 }
 
 // ─── Board Step Renderer ──────────────────────────────────────────────────────
-function BoardStep({ blocks, progress }: { blocks: BoardBlock[]; progress: number }) {
-  const totalChars = blocks.reduce((s, b) => s + b.content.length, 0);
-  let charsRendered = Math.floor(progress * totalChars);
+function BoardStep({ blocks, activeWordIndex }: { blocks: BoardBlock[]; activeWordIndex: number }) {
+  let currentBaseIndex = 0;
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 mb-6">
       {blocks.map((block, i) => {
-        const blockLen = block.content.length;
-        const blockReveal = Math.min(1, Math.max(0, charsRendered / blockLen));
-        charsRendered = Math.max(0, charsRendered - blockLen);
+        const wordCount = block.content.split(" ").length;
+        const baseIndex = currentBaseIndex;
+        currentBaseIndex += wordCount;
         return (
           <div key={i} className="animate-in fade-in duration-300">
-            <BoardBlockRenderer block={block} revealed={blockReveal} />
+            <BoardBlockRenderer block={block} baseWordIndex={baseIndex} activeWordIndex={activeWordIndex} />
           </div>
         );
       })}
@@ -139,22 +147,19 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
   const [lessonState, setLessonState] = useState<LessonState>("idle");
   const [steps, setSteps] = useState<LessonStep[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [boardProgress, setBoardProgress] = useState(0); // 0–1 per step
+  const [boardActiveWordIndex, setBoardActiveWordIndex] = useState(-1);
   const [statusText, setStatusText] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const boardAnimFrameRef = useRef<number | null>(null);
-  const boardStartTimeRef = useRef<number>(0);
-  const boardDurationRef = useRef<number>(3000); // fallback ms
+  const boardScrollRef = useRef<HTMLDivElement>(null);
   const prefetchAbortRef = useRef<AbortController | null>(null);
   const prefetchedAudioRef = useRef<{ index: number; url: string } | null>(null);
   const lessonStateRef = useRef<LessonState>("idle");
   const currentStepRef = useRef(0);
   const stepsRef = useRef<LessonStep[]>([]);
-  const pausedProgressRef = useRef(0);
 
   // STT
   const socketRef = useRef<WebSocket | null>(null);
@@ -185,28 +190,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     return URL.createObjectURL(blob);
   };
 
-  // ── Board animation ───────────────────────────────────────────────────────────
-  const animateBoard = (duration: number, startProgress: number = 0) => {
-    if (boardAnimFrameRef.current) cancelAnimationFrame(boardAnimFrameRef.current);
-    const startTime = performance.now() - startProgress * duration;
-    boardStartTimeRef.current = startTime;
-    boardDurationRef.current = duration;
 
-    const tick = () => {
-      const elapsed = performance.now() - startTime;
-      const p = Math.min(elapsed / duration, 1);
-      setBoardProgress(p);
-      if (p < 1) {
-        boardAnimFrameRef.current = requestAnimationFrame(tick);
-      }
-    };
-    boardAnimFrameRef.current = requestAnimationFrame(tick);
-  };
-
-  const pauseBoard = () => {
-    if (boardAnimFrameRef.current) cancelAnimationFrame(boardAnimFrameRef.current);
-    pausedProgressRef.current = boardProgress;
-  };
 
   // ── Play step ─────────────────────────────────────────────────────────────────
   const playStep = useCallback(async (index: number, audioUrl?: string) => {
@@ -214,7 +198,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     if (!step) return;
 
     setCurrentStepIndex(index);
-    setBoardProgress(0);
+    setBoardActiveWordIndex(-1);
     setLessonState("playing");
     setStatusText(`Step ${index + 1} of ${stepsRef.current.length}`);
 
@@ -228,22 +212,43 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
       }
     }
 
-    // Start board animation — estimate 150ms per character
-    const estimatedDuration = Math.max(step.speechText.length * 80, 2000);
-    animateBoard(estimatedDuration);
-
     // Play audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
     const audio = new Audio(url);
+    
+    // Slow down playback for teaching pace, and preserve pitch
+    audio.playbackRate = 0.85;
+    (audio as any).preservesPitch = true;
+    if ("mozPreservesPitch" in audio) (audio as any).mozPreservesPitch = true;
+
     audioRef.current = audio;
+    
+    const totalWords = step.boardContent.reduce((sum, block) => sum + block.content.split(" ").length, 0);
+
+    audio.onplay = () => {
+      setBoardActiveWordIndex(0);
+      if (boardScrollRef.current) {
+        boardScrollRef.current.scrollTop = boardScrollRef.current.scrollHeight;
+      }
+    };
+
+    audio.ontimeupdate = () => {
+      if (!audio.duration || audio.duration === Infinity) return;
+      const progress = audio.currentTime / audio.duration;
+      const currentWord = Math.floor(progress * totalWords);
+      setBoardActiveWordIndex(Math.min(currentWord, totalWords - 1));
+      
+      if (boardScrollRef.current) {
+        boardScrollRef.current.scrollTop = boardScrollRef.current.scrollHeight;
+      }
+    };
 
     audio.onended = () => {
       URL.revokeObjectURL(url!);
-      if (boardAnimFrameRef.current) cancelAnimationFrame(boardAnimFrameRef.current);
-      setBoardProgress(1);
+      setBoardActiveWordIndex(-1);
 
       const nextIndex = index + 1;
       if (nextIndex < stepsRef.current.length) {
@@ -281,9 +286,10 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
 
   // ── Interrupt / barge-in ──────────────────────────────────────────────────────
   const handleInterrupt = useCallback(async (question: string) => {
-    // 1. Pause audio and board
-    if (audioRef.current) audioRef.current.pause();
-    pauseBoard();
+    // 1. Pause audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
 
     // 2. Cancel prefetch
     if (prefetchAbortRef.current) prefetchAbortRef.current.abort();
@@ -428,7 +434,7 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     setStatusText("Dars rejasi tayyorlanmoqda...");
     setSteps([]);
     setCurrentStepIndex(0);
-    setBoardProgress(0);
+    setBoardActiveWordIndex(-1);
 
     const topic = GRAMMAR_TOPICS.find(t => t.id === selectedTopic)?.label || selectedTopic;
 
@@ -501,13 +507,12 @@ Output ONLY a valid JSON array, no markdown fences, no extra text.`
 
   const handleStop = () => {
     if (audioRef.current) audioRef.current.pause();
-    if (boardAnimFrameRef.current) cancelAnimationFrame(boardAnimFrameRef.current);
     if (prefetchAbortRef.current) prefetchAbortRef.current.abort();
     stopSTT();
     setLessonState("idle");
     setSteps([]);
     setCurrentStepIndex(0);
-    setBoardProgress(0);
+    setBoardActiveWordIndex(-1);
     setStatusText("");
   };
 
@@ -640,25 +645,22 @@ Output ONLY a valid JSON array, no markdown fences, no extra text.`
             )}
 
             {/* Whiteboard */}
-            <div className="bg-white dark:bg-neutral-900 border-2 border-border rounded-2xl shadow-lg overflow-hidden">
-              {/* Board header */}
-              <div className="px-6 py-3 bg-muted/50 border-b border-border flex items-center gap-3">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                  {GRAMMAR_TOPICS.find(t => t.id === selectedTopic)?.label}
-                </span>
-              </div>
-
+            <div className="bg-[#FDFDF9] dark:bg-neutral-800 border border-border/50 rounded-2xl shadow-xl overflow-hidden mb-6 mx-auto w-full max-w-4xl relative">
               {/* Board content */}
-              <div className="p-8 min-h-64 font-mono leading-relaxed">
-                <BoardStep
-                  blocks={currentStep.boardContent}
-                  progress={boardProgress}
-                />
+              <div className="p-8 sm:p-12 min-h-[400px] font-sans text-slate-800 dark:text-neutral-100 leading-relaxed text-lg flex flex-col justify-end">
+                {/* Auto-scroll container */}
+                <div className="max-h-[500px] overflow-y-auto pr-4 scroll-smooth" ref={boardScrollRef}>
+                  {steps.slice(0, currentStepIndex + 1).map((step, idx) => {
+                    const isCurrent = idx === currentStepIndex;
+                    return (
+                      <BoardStep 
+                        key={step.id}
+                        blocks={step.boardContent}
+                        activeWordIndex={isCurrent ? boardActiveWordIndex : -1}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
