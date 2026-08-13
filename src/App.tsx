@@ -8,11 +8,12 @@ import ReadingTest from "./pages/ReadingTest";
 import SpeakingTest from "./pages/SpeakingTest";
 import ListeningMaker from "./pages/ListeningMaker";
 import ListeningTest from "./pages/ListeningTest";
+import GrammarLesson from "./pages/GrammarLesson";
 import { BookOpen, Moon, Sun } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { VocabularyProvider } from "./lib/vocabulary-context";
 
-export type ViewState = "dashboard" | "reading" | "speaking" | "listening" | "listening-maker" | "profile";
+export type ViewState = "dashboard" | "reading" | "speaking" | "listening" | "listening-maker" | "profile" | "grammar";
 
 export interface PageProps {
   onNavigate: (view: ViewState) => void;
@@ -86,6 +87,7 @@ export default function App() {
             {currentView === "listening" && <ListeningTest onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
             {currentView === "listening-maker" && <ListeningMaker onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
             {currentView === "profile" && <UserProfile onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
+            {currentView === "grammar" && <GrammarLesson onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
           </>
         )}
       </div>

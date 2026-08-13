@@ -12,9 +12,7 @@ import { ViewState } from "../App";
 import { PageProps } from "../App";
 import { BookOpen, Moon, Sun } from "lucide-react";
 
-const DEEPGRAM_API_KEY = (import.meta as any).env.VITE_DEEPGRAM_API_KEY || "";
-const OPENROUTER_API_KEY = (import.meta as any).env.VITE_OPENROUTER_API_KEY || "";
-const TAVILY_API_KEY = (import.meta as any).env.VITE_TAVILY_API_KEY || "";
+
 
 type Message = { role: "user" | "assistant" | "tool"; content: string; feedback?: string; name?: string; tool_call_id?: string; tool_calls?: any[] };
 
@@ -164,14 +162,16 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
     audioQueueRef.current.push(queueItem);
 
     try {
-      const ttsRes = await fetch(`https://api.deepgram.com/v1/speak?model=${selectedVoiceRef.current}`, {
+      const ttsRes = await fetch(`/api/tts-proxy`, {
         method: "POST",
         headers: {
-          "Authorization": `Token ${DEEPGRAM_API_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ text: textToSpeak })
+        body: JSON.stringify({ text: textToSpeak, model: selectedVoiceRef.current })
       });
+
+      if (!ttsRes.ok) throw new Error("TTS failed");
+
 
       const audioBlob = await ttsRes.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -310,10 +310,9 @@ IMPORTANT RULES:
   const generateAssessment = async (history: Message[]) => {
     setThinking(true);
     try {
-      const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const orRes = await fetch("/api/chat-proxy", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -345,10 +344,9 @@ IMPORTANT RULES:
   const generateMicroFeedback = async (userText: string, messageIndex: number) => {
     if (mode !== "practice") return;
     try {
-      const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const orRes = await fetch("/api/chat-proxy", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -414,25 +412,11 @@ IMPORTANT RULES:
     isPlayingAudioRef.current = false;
     isGeneratingRef.current = true;
 
-    let openRouterKey = OPENROUTER_API_KEY;
-    if (!openRouterKey) {
-      openRouterKey = localStorage.getItem("openrouter_api_key") || prompt("OpenRouter API kalitini kiriting:") || "";
-      if (openRouterKey) {
-        localStorage.setItem("openrouter_api_key", openRouterKey);
-      } else {
-        setThinking(false);
-        return;
-      }
-    }
-
     try {
-      const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const orRes = await fetch("/api/chat-proxy", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${openRouterKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": window.location.href,
-          "X-Title": "CEFR Mock AI",
         },
         body: JSON.stringify({
           model: selectedModelRef.current,
@@ -552,18 +536,13 @@ IMPORTANT RULES:
             const parsedArgs = JSON.parse(toolCallArgs);
             setSearchQuery(parsedArgs.query);
             
-            let tavilyKey = TAVILY_API_KEY;
-            if (!tavilyKey) {
-              tavilyKey = localStorage.getItem("tavily_api_key") || prompt("Tavily API kalitini kiriting:") || "";
-              if (tavilyKey) localStorage.setItem("tavily_api_key", tavilyKey);
-            }
+            const searchRes = await fetch("/api/web-search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: parsedArgs.query })
+            });
             
-            if (tavilyKey) {
-                const searchRes = await fetch("https://api.tavily.com/search", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ api_key: tavilyKey, query: parsedArgs.query, search_depth: "basic" })
-                });
+            if (!searchRes.ok) throw new Error("Search failed");
                 const searchData = await searchRes.json();
                 
                 newMessages.push({ role: "assistant", content: "", tool_calls: [{ id: toolCallId, type: "function", function: { name: "web_search", arguments: toolCallArgs } }] });
@@ -574,9 +553,6 @@ IMPORTANT RULES:
                 
                 setIsSearching(false);
                 return handleUserMessage(undefined, newMessages);
-            } else {
-                throw new Error("Tavily Key missing");
-            }
          } catch(e) {
             console.error("Tool execution failed", e);
             newMessages.push({ role: "assistant", content: "", tool_calls: [{ id: toolCallId, type: "function", function: { name: "web_search", arguments: toolCallArgs } }] });
@@ -662,23 +638,16 @@ IMPORTANT RULES:
         requestAnimationFrame(updateVolume);
       };
 
-      const connectDeepgram = () => {
-        let currentKey = DEEPGRAM_API_KEY;
-        if (!currentKey) {
-          currentKey = localStorage.getItem("deepgram_api_key") || prompt("Deepgram API kalitini kiriting (xavfsiz, faqat brauzer xotirasida saqlanadi):") || "";
-          if (currentKey) {
-            localStorage.setItem("deepgram_api_key", currentKey);
-          } else {
-            alert("Deepgram kaliti yo'q. Ovozni aniqlash ishlamaydi.");
-            setMicReadyState(0 as any);
-            return;
-          }
-        }
+      const connectDeepgram = async () => {
+        try {
+          const tokenRes = await fetch('/api/get-deepgram-token');
+          if (!tokenRes.ok) throw new Error("Failed to get deepgram token");
+          const { token } = await tokenRes.json();
 
-        const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en&endpointing=250&interim_results=true`, [
-          "token",
-          currentKey,
-        ]);
+          const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en&endpointing=250&interim_results=true`, [
+            "token",
+            token,
+          ]);
 
         socket.onopen = () => {
           console.log("WebSocket connection opened");
@@ -771,6 +740,10 @@ IMPORTANT RULES:
         };
 
         socketRef.current = socket;
+        } catch (err) {
+          console.error("Deepgram connection error", err);
+          setMicReadyState(0 as any);
+        }
       };
 
       setIsRecording(true);
