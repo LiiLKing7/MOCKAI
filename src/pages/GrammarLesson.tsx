@@ -170,10 +170,14 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
 
   // ── TTS ──────────────────────────────────────────────────────────────────────
   const fetchAudio = async (text: string, signal?: AbortSignal): Promise<string> => {
-    const res = await fetch("/api/tts-proxy", {
+    const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
+    const res = await fetch(`https://api.deepgram.com/v1/speak?model=${selectedVoice}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, model: selectedVoice }),
+      headers: { 
+        "Authorization": `Token ${apiKey}`,
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify({ text }),
       signal,
     });
     if (!res.ok) throw new Error("TTS failed");
@@ -297,9 +301,13 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
       .join("\n") || "";
 
     try {
-      const res = await fetch("/api/chat-proxy", {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || "";
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
@@ -349,13 +357,10 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const tokenRes = await fetch("/api/get-deepgram-token");
-      if (!tokenRes.ok) throw new Error("Token fetch failed");
-      const { token } = await tokenRes.json();
-
+      const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
       const socket = new WebSocket(
         `wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en&endpointing=500&interim_results=true`,
-        ["token", token]
+        ["token", apiKey]
       );
       socketRef.current = socket;
 
@@ -428,9 +433,13 @@ export default function GrammarLesson({ onNavigate, theme, toggleTheme }: PagePr
     const topic = GRAMMAR_TOPICS.find(t => t.id === selectedTopic)?.label || selectedTopic;
 
     try {
-      const res = await fetch("/api/chat-proxy", {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || "";
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [

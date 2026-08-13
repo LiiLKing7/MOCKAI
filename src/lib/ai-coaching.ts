@@ -121,6 +121,12 @@ const PART_TYPE_GUIDELINES: Record<string, string> = {
 };
 
 export async function analyzeMistakePattern(group: MistakeGroup): Promise<AICoachingPattern> {
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("VITE_OPENROUTER_API_KEY is not set.");
+  }
+
   const guideline = PART_TYPE_GUIDELINES[group.taskType] || "Identify a specific pattern from the mistakes given.";
 
   const mistakesData = group.mistakes.map(m => `
@@ -152,10 +158,11 @@ Mistakes:
 ${mistakesData}
   `;
 
-  const response = await fetch("/api/chat-proxy", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
@@ -167,7 +174,7 @@ ${mistakesData}
   });
 
   if (!response.ok) {
-    throw new Error(`Chat proxy error: ${response.statusText}`);
+    throw new Error(`OpenRouter API error: ${response.statusText}`);
   }
 
   const data = await response.json();
