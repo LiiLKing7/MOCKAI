@@ -94,16 +94,16 @@ export function QuestionPanel({
           </div>
           <div>
             <p className="font-semibold text-base">
-              {isCorrect ? "To'g'ri javob!" : 
-               isUnanswered ? `Javob berilmagan (To'g'ri: ${question.correctAnswer})` : 
-               `Noto'g'ri (To'g'ri: ${question.correctAnswer})`}
+              {isCorrect ? "Correct!" : 
+               isUnanswered ? `Unanswered (Correct: ${question.correctAnswer})` : 
+               `Incorrect (Correct: ${question.correctAnswer})`}
             </p>
           </div>
         </div>
         
         <div className="mb-4 flex items-center gap-2 text-muted-foreground font-semibold border-b pb-2">
           <Lightbulb className="w-5 h-5" />
-          <span className="uppercase tracking-wider text-sm">Tushuntirish</span>
+          <span className="uppercase tracking-wider text-sm">Explanation</span>
         </div>
         <div className="p-6 rounded-xl border border-border/50 bg-muted/10 shadow-sm">
           <p className="text-lg md:text-xl text-foreground leading-relaxed font-medium">{question.explanation}</p>
@@ -259,7 +259,7 @@ export function QuestionPanel({
                       disabled={isReviewMode}
                     >
                       <SelectTrigger className={cn("h-12 text-base w-full max-w-md", getSelectClass(q, answers[q.id] || ""))}>
-                        <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Javob berilmagan" : "Choose a heading..."} />
+                        <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Unanswered" : "Choose a heading..."} />
                       </SelectTrigger>
                       <SelectContent>
                         {(part as any).headings.map((h: any) => (
@@ -298,7 +298,7 @@ export function QuestionPanel({
             {isReviewMode && (
               <div className="mb-4 flex items-center gap-2 text-muted-foreground font-semibold border-b pb-2">
                 <HelpCircle className="w-5 h-5" />
-                <span className="uppercase tracking-wider text-sm">Savol</span>
+                <span className="uppercase tracking-wider text-sm">Question</span>
               </div>
             )}
             <Card 
@@ -385,7 +385,7 @@ export function QuestionPanel({
                   disabled={isReviewMode}
                 >
                   <SelectTrigger className={cn("h-12 text-base", getSelectClass(q, answers[q.id] || ""))}>
-                    <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Javob berilmagan" : "Choose a letter..."} />
+                    <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Unanswered" : "Choose a letter..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {(part as any).texts.map((t: any) => (
@@ -406,7 +406,7 @@ export function QuestionPanel({
                   disabled={isReviewMode}
                 >
                   <SelectTrigger className={cn("h-12 text-base", getSelectClass(q, answers[q.id] || ""))}>
-                    <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Javob berilmagan" : "Select..."} />
+                    <SelectValue placeholder={isReviewMode && !answers[q.id] ? "Unanswered" : "Select..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {(part as any).sentences.map((s: any) => (

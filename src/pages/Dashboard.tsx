@@ -31,19 +31,19 @@ export default function Dashboard({ onNavigate, theme, toggleTheme }: PageProps)
       {!isStarted ? (
         <div className="space-y-6 max-w-md">
           <h2 className="text-3xl font-heading font-bold text-foreground">
-            Ingliz tili darajangizni sinab ko'ring
+            Test Your English Level
           </h2>
           <p className="text-muted-foreground">
-            Haqiqiy CEFR Multilevel testiga o'xshash mashqlar orqali o'z bilmingizni oshiring.
+            Improve your skills with realistic CEFR Multilevel mock tests.
           </p>
           <Button size="lg" className="w-full" onClick={() => setIsStarted(true)}>
-            Mock testni boshlash
+            Start Mock Test
           </Button>
         </div>
       ) : (
         <div className="w-full">
           <h2 className="text-2xl font-heading font-bold text-foreground mb-8 text-center">
-            Bo'limni tanlang
+            Select a Section
           </h2>
           <SkillSelector onNavigate={onNavigate} />
         </div>

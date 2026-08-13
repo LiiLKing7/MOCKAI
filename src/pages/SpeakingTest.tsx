@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Square, Loader2, Volume2, User, Bot, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Mic, Square, Loader2, Volume2, User, Bot, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import Strands from "@/components/ui/strands";
@@ -13,20 +13,21 @@ import { BookOpen, Moon, Sun } from "lucide-react";
 
 const DEEPGRAM_API_KEY = (import.meta as any).env.VITE_DEEPGRAM_API_KEY || "";
 const OPENROUTER_API_KEY = (import.meta as any).env.VITE_OPENROUTER_API_KEY || "";
+const TAVILY_API_KEY = (import.meta as any).env.VITE_TAVILY_API_KEY || "";
 
-type Message = { role: "user" | "assistant"; content: string; feedback?: string };
+type Message = { role: "user" | "assistant" | "tool"; content: string; feedback?: string; name?: string; tool_call_id?: string; tool_calls?: any[] };
 
 const AI_MODELS = [
-  { id: "meta-llama/llama-3.1-8b-instruct", name: "Llama 3.1 8B (Fast & Cheap)" },
-  { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B (Smart)" },
-  { id: "google/gemini-2.0-flash-lite-preview-02-05:free", name: "Gemini Flash Lite (Free & Fast)" },
-  { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash (Super Fast)" },
-  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini" },
-  { id: "openai/gpt-4o", name: "GPT-4o (Premium)" },
-  { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku" },
-  { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet (Best)" },
-  { id: "mistralai/mistral-nemo", name: "Mistral Nemo" },
-  { id: "qwen/qwen-2.5-7b-instruct", name: "Qwen 2.5 7B" }
+  { id: "meta-llama/llama-3.1-8b-instruct", name: "Llama 3.1 8B (Fast & Cheap)", supportsTools: true },
+  { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B (Smart)", supportsTools: true },
+  { id: "google/gemini-2.0-flash-lite-preview-02-05:free", name: "Gemini Flash Lite (Free & Fast)", supportsTools: false },
+  { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash (Super Fast)", supportsTools: true },
+  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", supportsTools: true },
+  { id: "openai/gpt-4o", name: "GPT-4o (Premium)", supportsTools: true },
+  { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku", supportsTools: true },
+  { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet (Best)", supportsTools: true },
+  { id: "mistralai/mistral-nemo", name: "Mistral Nemo", supportsTools: false },
+  { id: "qwen/qwen-2.5-7b-instruct", name: "Qwen 2.5 7B", supportsTools: true }
 ];
 
 const VOICE_MODELS = [
@@ -72,6 +73,8 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
   // UI states
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Refs for callbacks to access latest state
   const isThinkingRef = useRef(false);
@@ -244,9 +247,9 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
     else if (hour >= 18 && hour < 22) timeGreeting = "Good evening";
 
     if (mode === "practice") {
-      let prompt = `You are a friendly conversational partner named ${aiName}. Speak naturally like a native speaker. Keep replies short and conversational (1-2 sentences).`;
+      let prompt = `You are a friendly conversational partner named ${aiName}. Speak naturally like a native speaker. Keep replies short and conversational (1-2 sentences). You MUST strictly speak ONLY in English.`;
       if (practiceDifficulty === "slow") {
-        prompt = `You are an English teacher named ${aiName} practicing with a beginner. Speak VERY simply, use basic vocabulary, and keep sentences very short (1 sentence max).`;
+        prompt = `You are an English teacher named ${aiName} practicing with a beginner. Speak VERY simply, use basic vocabulary, and keep sentences very short (1 sentence max). You MUST strictly speak ONLY in English.`;
       }
       if (practiceTopic) {
         prompt += ` The current topic or roleplay scenario is: ${practiceTopic}. Play along naturally.`;
@@ -345,8 +348,8 @@ IMPORTANT RULES:
     } catch (e) { }
   };
 
-  const handleUserMessage = async (text?: string) => {
-    let newMessages = messagesRef.current;
+  const handleUserMessage = async (text?: string, overrideMessages?: Message[]) => {
+    let newMessages = overrideMessages || messagesRef.current;
     if (text) {
       const msgIndex = newMessages.length;
       newMessages = [...messagesRef.current, { role: "user" as const, content: text }];
@@ -408,12 +411,30 @@ IMPORTANT RULES:
         body: JSON.stringify({
           model: selectedModelRef.current,
           stream: true,
+          tools: AI_MODELS.find(m => m.id === selectedModelRef.current)?.supportsTools ? [
+            {
+              type: "function",
+              function: {
+                name: "web_search",
+                description: "Search the web for current or specific factual information the assistant isn't confident about.",
+                parameters: {
+                  type: "object",
+                  properties: { query: { type: "string", description: "The search query" } },
+                  required: ["query"]
+                }
+              }
+            }
+          ] : undefined,
           messages: [
             {
               role: "system",
               content: getSystemPrompt(nextMockPart, nextMockPart2State)
             },
-            ...newMessages
+            ...newMessages.map(m => {
+              // Strip internal fields before sending to API
+              const { feedback, ...rest } = m;
+              return rest;
+            })
           ]
         })
       });
@@ -425,6 +446,9 @@ IMPORTANT RULES:
       let fullText = "";
       let currentSentence = "";
       let isFirstChunk = true;
+      let toolCallName = "";
+      let toolCallArgs = "";
+      let toolCallId = "";
 
       if (reader) {
         while (true) {
@@ -437,6 +461,29 @@ IMPORTANT RULES:
             if (line.startsWith("data: ") && line !== "data: [DONE]") {
               try {
                 const data = JSON.parse(line.slice(6));
+                
+                const toolCalls = data.choices[0]?.delta?.tool_calls;
+                if (toolCalls && toolCalls.length > 0) {
+                  const tc = toolCalls[0];
+                  if (tc.id) toolCallId = tc.id;
+                  if (tc.function?.name) toolCallName += tc.function.name;
+                  if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
+                  
+                  if (isFirstChunk) {
+                    setThinking(false);
+                    setIsSearching(true);
+                    isFirstChunk = false;
+                  }
+                  
+                  if (toolCallArgs.endsWith('"}') || toolCallArgs.endsWith('"} ')) {
+                    try {
+                      const parsed = JSON.parse(toolCallArgs + (toolCallArgs.endsWith('}') ? '' : '"}'));
+                      if (parsed.query) setSearchQuery(parsed.query);
+                    } catch(e) {}
+                  }
+                  continue;
+                }
+
                 const token = data.choices[0]?.delta?.content || "";
                 if (!token) continue;
 
@@ -452,7 +499,7 @@ IMPORTANT RULES:
                 setMessages(prev => {
                   const updated = [...prev];
                   const last = updated[updated.length - 1];
-                  if (last && last.role === "assistant") {
+                  if (last && last.role === "assistant" && !last.tool_calls) {
                     last.content = fullText;
                   } else {
                     updated.push({ role: "assistant", content: fullText });
@@ -469,6 +516,47 @@ IMPORTANT RULES:
             }
           }
         }
+      }
+
+      if (toolCallName === "web_search" && toolCallArgs) {
+         try {
+            const parsedArgs = JSON.parse(toolCallArgs);
+            setSearchQuery(parsedArgs.query);
+            
+            let tavilyKey = TAVILY_API_KEY;
+            if (!tavilyKey) {
+              tavilyKey = localStorage.getItem("tavily_api_key") || prompt("Tavily API kalitini kiriting:") || "";
+              if (tavilyKey) localStorage.setItem("tavily_api_key", tavilyKey);
+            }
+            
+            if (tavilyKey) {
+                const searchRes = await fetch("https://api.tavily.com/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ api_key: tavilyKey, query: parsedArgs.query, search_depth: "basic" })
+                });
+                const searchData = await searchRes.json();
+                
+                newMessages.push({ role: "assistant", content: "", tool_calls: [{ id: toolCallId, type: "function", function: { name: "web_search", arguments: toolCallArgs } }] });
+                newMessages.push({ role: "tool", tool_call_id: toolCallId, name: "web_search", content: JSON.stringify(searchData.results || searchData) });
+                
+                messagesRef.current = newMessages;
+                setMessages(newMessages);
+                
+                setIsSearching(false);
+                return handleUserMessage(undefined, newMessages);
+            } else {
+                throw new Error("Tavily Key missing");
+            }
+         } catch(e) {
+            console.error("Tool execution failed", e);
+            newMessages.push({ role: "assistant", content: "", tool_calls: [{ id: toolCallId, type: "function", function: { name: "web_search", arguments: toolCallArgs } }] });
+            newMessages.push({ role: "tool", tool_call_id: toolCallId, name: "web_search", content: "Search failed due to API error or missing key." });
+            messagesRef.current = newMessages;
+            setMessages(newMessages);
+            setIsSearching(false);
+            return handleUserMessage(undefined, newMessages);
+         }
       }
 
       if (currentSentence.trim().length > 0) {
@@ -741,18 +829,18 @@ IMPORTANT RULES:
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Mic className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold mb-4">Tayyorlanish (Practice)</h2>
-              <p className="text-muted-foreground mb-8">Erkin suhbat, grammatika bo'yicha maslahatlar va moslashuvchan qiyinchilik. Har qanday mavzuda gaplashish orqali o'z ustingizda ishlang.</p>
-              <Button className="w-full group-hover:bg-primary/90">Mashq qilish</Button>
+              <h2 className="text-2xl font-bold mb-4">Practice</h2>
+              <p className="text-muted-foreground mb-8">Free conversation, grammar tips, and flexible difficulty. Work on your speaking by talking about any topic.</p>
+              <Button className="w-full group-hover:bg-primary/90">Practice</Button>
             </div>
 
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-all cursor-pointer group" onClick={() => setMode("mock_setup")}>
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Square className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold mb-4">Mock Test (Imtihon)</h2>
-              <p className="text-muted-foreground mb-8">3 qismli real IELTS/CEFR Multilevel imtihon formati. Tayyorgarlik vaqti, taymerlar va suhbat oxirida batafsil baholash (Assessment).</p>
-              <Button variant="secondary" className="w-full group-hover:bg-secondary/80">Testni boshlash</Button>
+              <h2 className="text-2xl font-bold mb-4">Mock Test</h2>
+              <p className="text-muted-foreground mb-8">3-part real IELTS/CEFR Multilevel exam format. Preparation time, timers, and detailed assessment at the end.</p>
+              <Button variant="secondary" className="w-full group-hover:bg-secondary/80">Start Test</Button>
             </div>
           </div>
         </div>
@@ -765,42 +853,42 @@ IMPORTANT RULES:
       <div className="flex-1 flex flex-col p-6 items-center justify-center h-full">
         <div className="w-full max-w-2xl bg-card border rounded-2xl p-8 shadow-lg">
           <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Orqaga
+            <ChevronLeft className="w-4 h-4 mr-2" /> Back
           </Button>
-          <h2 className="text-3xl font-bold font-heading mb-6">Tayyorlanish sozlamalari</h2>
+          <h2 className="text-3xl font-bold font-heading mb-6">Practice Settings</h2>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Qiyinchilik darajasi</label>
+              <label className="block text-sm font-medium mb-2">Difficulty Level</label>
               <div className="flex gap-4">
                 <Button
                   variant={practiceDifficulty === "natural" ? "default" : "outline"}
                   onClick={() => setPracticeDifficulty("natural")}
                   className="flex-1"
                 >
-                  Tabiiy tezlik
+                  Natural speed
                 </Button>
                 <Button
                   variant={practiceDifficulty === "slow" ? "default" : "outline"}
                   onClick={() => setPracticeDifficulty("slow")}
                   className="flex-1"
                 >
-                  Sekin va oddiy
+                  Slow and simple
                 </Button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Mavzu yoki Holat (Topic / Roleplay)</label>
+              <label className="block text-sm font-medium mb-2">Topic or Roleplay</label>
               <input
                 type="text"
                 value={practiceTopic}
                 onChange={e => setPracticeTopic(e.target.value)}
-                placeholder="Masalan, Hobbies, Sayohat, Ish suhbati..."
+                placeholder="E.g., Hobbies, Travel, Job interview..."
                 className="w-full p-3 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
               />
               <div className="flex flex-wrap gap-2 mt-3">
-                {["Sayohat", "Texnologiya", "Restoranda buyurtma", "Ish suhbati", "O'zini tanishtirish"].map(t => (
+                {["Travel", "Technology", "Ordering at a restaurant", "Job interview", "Self-introduction"].map(t => (
                   <span
                     key={t}
                     onClick={() => setPracticeTopic(t)}
@@ -815,7 +903,7 @@ IMPORTANT RULES:
             <Button size="lg" className="w-full mt-4" onClick={() => {
               setMode("practice");
             }}>
-              Boshlash
+              Start
             </Button>
           </div>
         </div>
@@ -828,23 +916,23 @@ IMPORTANT RULES:
       <div className="flex-1 flex flex-col p-6 items-center justify-center h-full">
         <div className="w-full max-w-2xl bg-card border rounded-2xl p-8 shadow-lg">
           <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Orqaga
+            <ChevronLeft className="w-4 h-4 mr-2" /> Back
           </Button>
           <h2 className="text-3xl font-bold font-heading mb-4">Mock Test (IELTS/CEFR Multilevel)</h2>
-          <p className="text-muted-foreground mb-6">Ushbu test 3 qismdan iborat bo'ladi va yakunda CEFR Multilevel darajangizni baholaydi.</p>
+          <p className="text-muted-foreground mb-6">This test consists of 3 parts and will evaluate your CEFR Multilevel speaking ability.</p>
 
           <div className="space-y-4 mb-8">
             <div className="p-4 border rounded-lg bg-muted/30">
               <h3 className="font-bold mb-1">Part 1: Interview</h3>
-              <p className="text-sm text-muted-foreground">Kundalik mavzularda qisqa savollar. (Tayyorgarliksiz)</p>
+              <p className="text-sm text-muted-foreground">Short questions on familiar topics. (No preparation)</p>
             </div>
             <div className="p-4 border rounded-lg bg-muted/30">
-              <h3 className="font-bold mb-1">Part 2: Long Turn (Karta)</h3>
-              <p className="text-sm text-muted-foreground">Bitta mavzu beriladi. 1 daqiqa tayyorgarlik va 1-2 daqiqa gapirish.</p>
+              <h3 className="font-bold mb-1">Part 2: Long Turn (Cue Card)</h3>
+              <p className="text-sm text-muted-foreground">You will be given a topic to speak about for 1-2 minutes. You have 1 minute to prepare.</p>
             </div>
             <div className="p-4 border rounded-lg bg-muted/30">
               <h3 className="font-bold mb-1">Part 3: Discussion</h3>
-              <p className="text-sm text-muted-foreground">Part 2 dagi mavzu yuzasidan chuqurroq, analitik savollar.</p>
+              <p className="text-sm text-muted-foreground">Deeper, analytical questions related to the topic in Part 2.</p>
             </div>
           </div>
 
@@ -852,7 +940,7 @@ IMPORTANT RULES:
             setMockPart(1);
             setMode("mock");
           }}>
-            Testni Boshlash
+            Start Test
           </Button>
         </div>
       </div>
@@ -864,22 +952,22 @@ IMPORTANT RULES:
       <div className="flex-1 flex flex-col p-6 items-center justify-center h-full overflow-y-auto">
         <div className="w-full max-w-4xl bg-card border rounded-2xl p-8 shadow-lg">
           <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Bosh sahifaga
+            <ChevronLeft className="w-4 h-4 mr-2" /> Back to Home
           </Button>
-          <h2 className="text-4xl font-bold font-heading mb-8">Tayyorlanish Natijalari (Practice Stats)</h2>
+          <h2 className="text-4xl font-bold font-heading mb-8">Practice Results</h2>
 
           {practiceStats && (
             <div className="grid md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
               <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Vaqt (daqiqa)</p>
+                <p className="text-muted-foreground mb-2">Time (minutes)</p>
                 <h3 className="text-4xl font-bold text-primary">{practiceStats.durationMins}</h3>
               </div>
               <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Tezlik (WPM)</p>
+                <p className="text-muted-foreground mb-2">Speed (WPM)</p>
                 <h3 className="text-4xl font-bold text-primary">{practiceStats.wpm}</h3>
               </div>
               <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Ortiqcha so'zlar (Fillers)</p>
+                <p className="text-muted-foreground mb-2">Filler Words</p>
                 <h3 className="text-4xl font-bold text-amber-500">{practiceStats.fillerCount}</h3>
               </div>
             </div>
@@ -894,14 +982,14 @@ IMPORTANT RULES:
       <div className="flex-1 flex flex-col p-6 items-center justify-center h-full overflow-y-auto">
         <div className="w-full max-w-4xl bg-card border rounded-2xl p-8 shadow-lg">
           <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Bosh sahifaga
+            <ChevronLeft className="w-4 h-4 mr-2" /> Back to Home
           </Button>
-          <h2 className="text-4xl font-bold font-heading mb-8">Test Natijalari (Assessment)</h2>
+          <h2 className="text-4xl font-bold font-heading mb-8">Test Results (Assessment)</h2>
 
           {!assessmentResult ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-primary">
               <Loader2 className="w-12 h-12 animate-spin" />
-              <p className="text-xl font-medium">Natijalar baholanmoqda (Claude 3.5 Sonnet)...</p>
+              <p className="text-xl font-medium">Evaluating results (Claude 3.5 Sonnet)...</p>
             </div>
           ) : (
             <div className="space-y-8 animate-in fade-in zoom-in duration-500">
@@ -910,15 +998,15 @@ IMPORTANT RULES:
                   {assessmentResult.cefr}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Taxminiy CEFR Multilevel Darajangiz</h3>
-                  <p className="text-muted-foreground">Bu AI tomonidan baholangan taxminiy natija bo'lib, rasmiy sertifikat o'rniga o'tmaydi.</p>
+                  <h3 className="text-2xl font-bold mb-2">Estimated CEFR Multilevel Score</h3>
+                  <p className="text-muted-foreground">This is an estimated score evaluated by AI and cannot replace an official certificate.</p>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="bg-green-500/10 border border-green-500/20 p-6 rounded-xl">
                   <h3 className="text-xl font-bold text-green-600 dark:text-green-400 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">💪</span> Kuchli tomonlar
+                    <span className="text-2xl">💪</span> Strengths
                   </h3>
                   <ul className="space-y-3">
                     {assessmentResult.strengths?.map((s: string, i: number) => (
@@ -929,7 +1017,7 @@ IMPORTANT RULES:
 
                 <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-xl">
                   <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">📈</span> Yaxshilash kerak
+                    <span className="text-2xl">📈</span> Areas for Improvement
                   </h3>
                   <ul className="space-y-3">
                     {assessmentResult.improvements?.map((s: string, i: number) => (
@@ -967,7 +1055,7 @@ IMPORTANT RULES:
                 <Clock className="w-10 h-10" />
                 <h2 className="text-5xl font-bold">00:{mockTimeLeft.toString().padStart(2, '0')}</h2>
               </div>
-              <p className="text-xl text-muted-foreground mb-8">Tayyorgarlik vaqti (Prep Time)</p>
+              <p className="text-xl text-muted-foreground mb-8">Preparation Time</p>
               <div className="bg-card border rounded-2xl p-8 max-w-2xl text-left shadow-2xl">
                 <h3 className="font-bold text-xl mb-4">Describe a memorable trip you took.</h3>
                 <ul className="list-disc pl-6 space-y-2 text-lg">
@@ -1117,7 +1205,7 @@ IMPORTANT RULES:
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-          {messages.map((msg, idx) => (
+          {messages.filter(m => m.role !== "tool" && (m.role !== "assistant" || m.content)).map((msg, idx) => (
             <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -1168,6 +1256,17 @@ IMPORTANT RULES:
                 <Loader2 className="w-5 h-5 text-primary animate-spin" />
               </div>
               <span className="text-sm">Thinking...</span>
+            </div>
+          )}
+
+          {isSearching && (
+            <div className="flex gap-3 justify-start items-center text-primary p-2 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Search className="w-5 h-5 text-primary" />
+              </div>
+              <span className="text-sm italic">
+                🔍 "{searchQuery || 'Searching...'}" bo'yicha internetdan qidiryapman...
+              </span>
             </div>
           )}
 

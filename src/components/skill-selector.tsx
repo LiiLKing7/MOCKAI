@@ -7,28 +7,28 @@ import { ViewState } from "../App";
 const skills = [
   {
     id: "reading",
-    label: "O'qish",
+    label: "Reading",
     icon: BookOpen,
     href: "/test/reading",
     enabled: true,
   },
   {
     id: "listening",
-    label: "Tinglash",
+    label: "Listening",
     icon: Headphones,
     href: "/test/listening",
     enabled: true,
   },
   {
     id: "writing",
-    label: "Yozish",
+    label: "Writing",
     icon: PenLine,
     href: "#",
     enabled: false,
   },
   {
     id: "speaking",
-    label: "Gapirish",
+    label: "Speaking",
     icon: Mic,
     href: "#",
     enabled: true,
@@ -57,7 +57,7 @@ export function SkillSelector({ onNavigate }: SkillSelectorProps) {
           >
             {isDisabled && (
               <Badge variant="secondary" className="absolute top-3 right-3 text-xs">
-                Tez orada
+                Coming Soon
               </Badge>
             )}
             <Icon className={cn("h-8 w-8 mb-2", isDisabled ? "text-muted-foreground" : "text-primary")} />

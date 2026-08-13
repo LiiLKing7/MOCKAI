@@ -59,14 +59,14 @@ export function ResultsSummary({ parts, answers, onNavigate, onReview, onReviewQ
           </div>
           
           <div className="space-y-2">
-            <h1 className="text-4xl font-heading font-bold text-foreground">Test Yakunlandi!</h1>
+            <h1 className="text-4xl font-heading font-bold text-foreground">Test Completed!</h1>
             <p className="text-muted-foreground text-xl">
-              Sizning umumiy natijangiz: {totalOverallCorrect} / {totalOverallQuestions} ta to'g'ri javob
+              Your overall score: {totalOverallCorrect} / {totalOverallQuestions} correct
             </p>
           </div>
 
           <div className="w-full mt-6 space-y-4">
-            <h2 className="text-xl font-semibold text-left border-b pb-2">Qismlar bo'yicha natijalar</h2>
+            <h2 className="text-xl font-semibold text-left border-b pb-2">Results by Part</h2>
             <div className="space-y-3">
               {partScores.map((score) => (
                 <div key={score.partNumber} className="flex items-center justify-between p-4 bg-muted/40 rounded-xl border">
@@ -103,11 +103,11 @@ export function ResultsSummary({ parts, answers, onNavigate, onReview, onReviewQ
             <div className="mt-8 w-full space-y-3 pt-4 border-t">
               {onReview && (
                 <Button className="w-full" size="lg" variant="default" onClick={onReview}>
-                  Javoblarni ko'rib chiqish
+                  Review Answers
                 </Button>
               )}
               <Button className="w-full" size="lg" variant={onReview ? "outline" : "default"} onClick={() => onNavigate("dashboard")}>
-                Bosh sahifaga qaytish
+                Back to Dashboard
               </Button>
             </div>
           </div>

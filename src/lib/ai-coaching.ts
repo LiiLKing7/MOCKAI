@@ -138,7 +138,7 @@ Explanation: ${m.explanation}
   `).join("\n---");
 
   const promptText = `
-You are an expert English teacher coaching a student in Uzbek on their CEFR Multilevel Reading test.
+You are an expert English teacher coaching a student in English on their CEFR Multilevel Reading test.
 The user made the following mistakes in the "${group.taskType}" section.
 
 GUIDELINES FOR THIS SECTION: ${guideline}
@@ -149,8 +149,8 @@ If there is no clear pattern, explain the most prominent mistake gracefully.
 
 Output ONLY a JSON object with the following structure, and nothing else (no markdown fences, no extra text):
 {
-  "title": "Short title of the mistake pattern in Uzbek (e.g. 'Chalg\\'ituvchi so\\'zlarga e\\'tibor bermaslik')",
-  "explanation": "A 2-3 sentence explanation and general tip in Uzbek. Keep it encouraging and coaching.",
+  "title": "Short title of the mistake pattern in English (e.g. 'Ignoring Distractor Words')",
+  "explanation": "A 2-3 sentence explanation and general tip in English. Keep it encouraging and coaching.",
   "exampleQuestionId": "The Question ID of one specific mistake that best exemplifies this pattern (e.g. '${group.mistakes[0].questionId}')"
 }
 

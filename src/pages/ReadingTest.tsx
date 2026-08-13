@@ -179,7 +179,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
           
           <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex justify-center w-full md:w-auto order-last md:order-none z-0">
             <h2 className="text-xl font-heading font-semibold text-foreground">
-              {isReviewMode ? "Javoblarni ko'rib chiqish" : "Reading"}
+              {isReviewMode ? "Review Answers" : "Reading"}
             </h2>
           </div>
 
@@ -251,7 +251,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
                   <div className="max-w-[760px] mx-auto w-full pb-8">
                     <div className="flex justify-center mb-12">
                       <div className="px-4 py-1.5 text-sm font-medium rounded-full bg-muted/50 border border-border/50 text-muted-foreground flex items-center shadow-sm">
-                        Qism natijasi: <span className="font-bold text-foreground ml-1.5">{partCorrect} / {partTotal} to'g'ri</span>
+                        Part score: <span className="font-bold text-foreground ml-1.5">{partCorrect} / {partTotal} correct</span>
                       </div>
                     </div>
 
@@ -350,7 +350,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
               disabled={isTransitioning || (currentIndex === 0 && (!isReviewMode || reviewQuestionIndex === 0))}
               className={(!isReviewMode && currentIndex === 0) ? "invisible" : ""}
             >
-              Oldingi
+              Previous
             </Button>
 
             <div className="flex flex-col items-center flex-1 mx-4">
@@ -368,7 +368,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
               </TabsList>
               {isReviewMode && (
                 <span className="text-sm font-medium text-foreground mt-2 md:mt-3">
-                  Savol {reviewQuestionIndex + 1} / {parts[currentIndex]?.taskType === "short-text-mc" ? (parts[currentIndex] as any).items.length : (parts[currentIndex] as any).questions.length}
+                  Question {reviewQuestionIndex + 1} / {parts[currentIndex]?.taskType === "short-text-mc" ? (parts[currentIndex] as any).items.length : (parts[currentIndex] as any).questions.length}
                 </span>
               )}
             </div>
@@ -388,7 +388,7 @@ export default function ReadingTestPage({ onNavigate, theme, toggleTheme }: Page
               }}
               disabled={isTransitioning || (isReviewMode && currentIndex === parts.length - 1 && reviewQuestionIndex === ((parts[currentIndex]?.taskType === "short-text-mc" ? (parts[currentIndex] as any).items.length : (parts[currentIndex] as any).questions.length) - 1))}
             >
-              {!isReviewMode && currentIndex === parts.length - 1 ? "Tugatish" : "Keyingi"}
+              {!isReviewMode && currentIndex === parts.length - 1 ? "Finish" : "Next"}
             </Button>
           </div>
         </div>

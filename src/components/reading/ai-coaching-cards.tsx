@@ -57,10 +57,10 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
         setCoachingResults(successfulResults);
 
         if (successfulResults.length === 0 && anyFailed) {
-          setError("Tahlil qilishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring yoki API kalitini tekshiring.");
+          setError("An error occurred during analysis. Please try again or check the API key.");
         }
       } catch (err: any) {
-        setError(err.message || "Tahlil qilishda xatolik yuz berdi.");
+        setError(err.message || "An error occurred during analysis.");
       } finally {
         setLoading(false);
       }
@@ -71,10 +71,10 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
 
   const getTaskTypeName = (taskType: string) => {
     const names: Record<string, string> = {
-      "inline-gap-fill": "Part 1: Bo'shliqlarni to'ldirish",
-      "matching": "Part 2: Ma'lumotlarni moslashtirish",
-      "matching-headings": "Part 3: Sarlavhalarni moslashtirish",
-      "long-text-mc": "Part 4 & 5: O'qib tushunish",
+      "inline-gap-fill": "Part 1: Gap Fill",
+      "matching": "Part 2: Matching Information",
+      "matching-headings": "Part 3: Matching Headings",
+      "long-text-mc": "Part 4 & 5: Reading Comprehension",
     };
     return names[taskType] || taskType;
   };
@@ -83,9 +83,9 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
     return (
       <div className="w-full mt-8 p-6 rounded-xl border border-success/30 bg-success/5 flex flex-col items-center text-center gap-3">
         <Sparkles className="w-10 h-10 text-success mb-2" />
-        <h3 className="text-xl font-bold text-success-foreground">Ajoyib natija!</h3>
+        <h3 className="text-xl font-bold text-success-foreground">Great Job!</h3>
         <p className="text-muted-foreground max-w-md">
-          Siz barcha savollarga to'g'ri javob berdingiz. Shunday ruhda davom eting!
+          You answered all questions correctly. Keep it up!
         </p>
       </div>
     );
@@ -95,9 +95,9 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
     return (
       <div className="w-full mt-8 p-6 rounded-xl border bg-muted/20 flex flex-col items-center text-center gap-3">
         <BrainCircuit className="w-10 h-10 text-muted-foreground mb-2" />
-        <h3 className="text-xl font-bold">Ma'lumot yetarli emas</h3>
+        <h3 className="text-xl font-bold">Insufficient Data</h3>
         <p className="text-muted-foreground max-w-md">
-          Xatolaringizda aniq bir qonuniyat (pattern) ni topish uchun bitta bo'limda kamida 2 ta xato bo'lishi kerak. Ko'proq mashq qiling va keyingi safar chuqurroq tahlil olasiz!
+          To find a specific pattern in your mistakes, there must be at least 2 mistakes in one section. Keep practicing for deeper analysis next time!
         </p>
       </div>
     );
@@ -108,8 +108,8 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
       <div className="w-full mt-8 p-8 rounded-xl border border-primary/20 bg-primary/5 flex flex-col items-center justify-center text-center gap-4">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
         <div className="space-y-1">
-          <h3 className="text-lg font-bold text-primary">Sun'iy Intellekt Tahlili</h3>
-          <p className="text-sm text-muted-foreground">Xatolaringiz strategiyasi tahlil qilinmoqda...</p>
+          <h3 className="text-lg font-bold text-primary">AI Analysis</h3>
+          <p className="text-sm text-muted-foreground">Analyzing your mistake patterns...</p>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
     <div className="w-full mt-8 space-y-4">
       <div className="flex items-center gap-2 mb-6">
         <BrainCircuit className="w-6 h-6 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">AI Strategiya Tahlili</h2>
+        <h2 className="text-2xl font-bold text-foreground">AI Strategy Analysis</h2>
       </div>
 
       {error && coachingResults.length === 0 && (
@@ -152,7 +152,7 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
                 className="w-full mt-auto group border-primary/30 hover:bg-primary/10 hover:text-primary"
                 onClick={() => onReviewQuestion(mistakeObj.partId, mistakeObj.questionIndex)}
               >
-                Misolni ko'rish
+                View Example
               </Button>
             </Card>
           );
