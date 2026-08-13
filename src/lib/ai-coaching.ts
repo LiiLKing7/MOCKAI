@@ -182,12 +182,12 @@ ${mistakesData}
 
   // 1. Safe JSON Parsing: Clean markdown fences
   text = text.trim();
-  if (text.startsWith("\`\`\`json")) {
+  if (text.startsWith("```json")) {
     text = text.substring(7);
-  } else if (text.startsWith("\`\`\`")) {
+  } else if (text.startsWith("```")) {
     text = text.substring(3);
   }
-  if (text.endsWith("\`\`\`")) {
+  if (text.endsWith("```")) {
     text = text.substring(0, text.length - 3);
   }
   text = text.trim();
@@ -198,7 +198,7 @@ ${mistakesData}
     // 2. Validate exampleQuestionId
     const isValidId = group.mistakes.some(m => m.questionId === parsed.exampleQuestionId);
     if (!isValidId) {
-      console.warn(\`AI returned invalid exampleQuestionId: \${parsed.exampleQuestionId}. Falling back to first mistake.\`);
+      console.warn(`AI returned invalid exampleQuestionId: ${parsed.exampleQuestionId}. Falling back to first mistake.`);
       parsed.exampleQuestionId = group.mistakes[0].questionId;
     }
     
