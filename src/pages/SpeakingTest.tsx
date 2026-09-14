@@ -84,13 +84,28 @@ export default function SpeakingTest({ onNavigate, theme, toggleTheme }: PagePro
       "Why do some people like to eat fast food?",
       "Do you think breakfast is important?"
     ],
-    part2: [
-      "Tell me about a skill you have learned recently.",
-      "Why is it important nowadays?",
-      "Give an example of when you use this skill."
-    ],
-    part3_image: "/part3_table.png",
-    part3_task: "Discuss the advantages and disadvantages of video games on children based on the table provided."
+    part2: {
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800",
+      questions: [
+        "What are the main challenges shown in this situation?",
+        "How might technology help solve this issue?",
+        "What are the potential long-term consequences of this problem?"
+      ]
+    },
+    part3: {
+      title: "Technological change means progress",
+      task: "Discuss the advantages and disadvantages of technological change based on the table provided.",
+      for: [
+        "Easier life due to advanced machinery",
+        "Better communication across the world",
+        "Improved healthcare and medical treatments"
+      ],
+      against: [
+        "Technology is used for weapons and war",
+        "Loss of traditional jobs to automation",
+        "Decreased face-to-face social interactions"
+      ]
+    }
   };
 
   const modeRef = useRef(mode);
@@ -534,6 +549,11 @@ Do not include any text before or after the JSON. Do not use markdown code fence
         })
       });
       const data = await orRes.json();
+      if (!data.choices || !data.choices[0]) {
+        console.error("Invalid API response format", data);
+        setIsAssessing(false);
+        return;
+      }
       const content = data.choices[0].message.content;
       const cleaned = content.replace(/```json|```/g, "").trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -567,6 +587,7 @@ Do not include any text before or after the JSON. Do not use markdown code fence
         })
       });
       const data = await orRes.json();
+      if (!data.choices || !data.choices[0]) return;
       const feedback = data.choices[0].message.content;
       setMessages(prev => {
         const next = [...prev];
@@ -1418,7 +1439,7 @@ Do not include any text before or after the JSON. Do not use markdown code fence
     if (mockPhase.includes("part1.1_q")) return MOCK_DATA.part1_1[mockQuestionIndex];
     if (mockPhase.includes("images")) return MOCK_DATA.part1_2_task;
     if (mockPhase.includes("followup")) return MOCK_DATA.part1_2_followups[mockQuestionIndex];
-    if (mockPhase.includes("part3")) return MOCK_DATA.part3_task;
+    if (mockPhase.includes("part3")) return MOCK_DATA.part3.task;
     return "";
   };
 
@@ -1432,6 +1453,35 @@ Do not include any text before or after the JSON. Do not use markdown code fence
   };
 
   const isMockActive = mode === "mock" && mockPhase !== "completed" && mockPhase !== "assessment";
+
+  const handleSkipPhase = () => {
+    const phase = mockPhaseRef.current;
+    
+    // Clear any playing audio
+    if (audioQueueRef.current.length > 0) audioQueueRef.current = [];
+    if (audioRef.current) {
+      audioRef.current.pause();
+      isPlayingAudioRef.current = false;
+    }
+
+    if (phase.startsWith("part1.1")) {
+      mockPhaseRef.current = "part1.2_intro";
+      setMockPhase("part1.2_intro");
+    } else if (phase.startsWith("part1.2")) {
+      mockPhaseRef.current = "part2_intro";
+      setMockPhase("part2_intro");
+    } else if (phase.startsWith("part2")) {
+      mockPhaseRef.current = "part3_intro";
+      setMockPhase("part3_intro");
+    } else if (phase.startsWith("part3")) {
+      stopSession();
+      mockPhaseRef.current = "assessment";
+      setMockPhase("assessment");
+      generateAssessment(messagesRef.current);
+      return;
+    }
+    handleUserMessage("", undefined, true);
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center w-full h-full overflow-hidden relative">
@@ -1562,7 +1612,7 @@ Do not include any text before or after the JSON. Do not use markdown code fence
                     <div>
                       <p className="text-foreground text-xl font-semibold text-center mb-4">Cover all 3 questions in your presentation.</p>
                       <ul className="space-y-3 text-foreground/80">
-                        {MOCK_DATA.part2.map((q, i) => (
+                        {MOCK_DATA.part2.questions.map((q, i) => (
                           <li key={i} className="flex gap-3 text-base">
                             <span className="text-muted-foreground shrink-0">•</span>
                             <span>{q}</span>
@@ -1579,10 +1629,37 @@ Do not include any text before or after the JSON. Do not use markdown code fence
               </div>
             )}
 
-            {/* Part 3 Table Image */}
+            {/* Part 2 Image */}
+            {mockPhase.includes("part2") && (mockPhase === "part2_prep" || mockPhase === "part2_speak") && (
+              <div className="flex justify-center animate-in fade-in duration-500 w-full max-w-xl">
+                <img src={MOCK_DATA.part2.image} className="w-full h-[240px] object-cover rounded-xl shadow-lg" />
+              </div>
+            )}
+
+            {/* Part 3 Table */}
             {mockPhase.includes("part3") && (mockPhase === "part3_prep" || mockPhase === "part3_speak") && (
-              <div className="bg-white p-3 rounded-xl shadow-xl max-w-2xl animate-in fade-in duration-500">
-                <img src={MOCK_DATA.part3_image} className="w-full object-contain rounded-lg" />
+              <div className="bg-white/5 dark:bg-white/[0.03] backdrop-blur-sm border border-white/10 dark:border-white/5 p-6 rounded-xl shadow-xl max-w-3xl w-full animate-in fade-in duration-500">
+                <h3 className="text-xl font-bold text-center mb-4 text-foreground">{MOCK_DATA.part3.title}</h3>
+                <div className="grid grid-cols-2 gap-0 border border-white/20 rounded-lg overflow-hidden">
+                  {/* Headers */}
+                  <div className="bg-primary/20 p-3 text-center font-semibold text-foreground border-b border-r border-white/20">
+                    For
+                  </div>
+                  <div className="bg-destructive/20 p-3 text-center font-semibold text-foreground border-b border-white/20">
+                    Against
+                  </div>
+                  {/* Rows */}
+                  {MOCK_DATA.part3.for.map((forItem, i) => (
+                    <div key={i} className="contents">
+                      <div className={`p-4 text-foreground/90 border-r border-white/10 ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b' : ''}`}>
+                        {forItem}
+                      </div>
+                      <div className={`p-4 text-foreground/90 border-white/10 ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b' : ''}`}>
+                        {MOCK_DATA.part3.against[i]}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1595,18 +1672,23 @@ Do not include any text before or after the JSON. Do not use markdown code fence
                 Start
               </GlassButton>
             ) : (
-              <GlassButton
-                onClick={() => {
-                  stopSession();
-                  mockPhaseRef.current = "assessment";
-                  setMockPhase("assessment");
-                  generateAssessment(messagesRef.current);
-                }}
-                active={!isThinking && !isSpeaking}
-              >
-                <Square className="w-5 h-5 text-destructive" />
-                Stop
-              </GlassButton>
+              <div className="flex gap-4">
+                <GlassButton
+                  onClick={() => {
+                    stopSession();
+                    mockPhaseRef.current = "assessment";
+                    setMockPhase("assessment");
+                    generateAssessment(messagesRef.current);
+                  }}
+                  active={!isThinking && !isSpeaking}
+                >
+                  <Square className="w-5 h-5 text-destructive" />
+                  Stop
+                </GlassButton>
+                <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-white/20 hover:bg-white/10 dark:text-white" onClick={handleSkipPhase}>
+                  Skip Part
+                </Button>
+              </div>
             )}
           </div>
         </div>
