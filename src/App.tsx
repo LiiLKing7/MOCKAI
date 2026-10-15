@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { User } from "@supabase/supabase-js";
-import { supabase } from "./lib/supabase";
+import { getActiveUser, subscribeAuth, UserProfileData } from "./lib/storage";
 import Login from "./pages/Login";
 import UserProfile from "./pages/UserProfile";
 import Dashboard from "./pages/Dashboard";
@@ -9,11 +8,10 @@ import SpeakingTest from "./pages/SpeakingTest";
 import ListeningMaker from "./pages/ListeningMaker";
 import ListeningTest from "./pages/ListeningTest";
 import GrammarLesson from "./pages/GrammarLesson";
-import { BookOpen, Moon, Sun } from "lucide-react";
-import { Button } from "./components/ui/button";
+import AvatarsPreview from "./pages/AvatarsPreview";
 import { VocabularyProvider } from "./lib/vocabulary-context";
 
-export type ViewState = "dashboard" | "reading" | "speaking" | "listening" | "listening-maker" | "profile" | "grammar";
+export type ViewState = "dashboard" | "reading" | "speaking" | "listening" | "listening-maker" | "profile" | "grammar" | "avatars";
 
 export interface PageProps {
   onNavigate: (view: ViewState) => void;
@@ -24,46 +22,31 @@ export interface PageProps {
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>("dashboard");
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfileData | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Initialize auth
+  // Initialize offline cache auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const active = getActiveUser();
+    setUser(active);
+    setAuthLoading(false);
+
+    const unsubscribe = subscribeAuth((updatedUser) => {
+      setUser(updatedUser);
       setAuthLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
-  // Initialize theme
+  // Enforce light paper theme permanently (no dark mode)
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-    }
+    document.documentElement.classList.remove("dark");
+    localStorage.removeItem("theme");
   }, []);
-
-  // Apply theme class
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    // Dark mode is permanently disabled per project requirements
   };
 
   const navigateTo = (view: ViewState) => {
@@ -88,6 +71,7 @@ export default function App() {
             {currentView === "listening-maker" && <ListeningMaker onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
             {currentView === "profile" && <UserProfile onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
             {currentView === "grammar" && <GrammarLesson onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
+            {currentView === "avatars" && <AvatarsPreview onNavigate={navigateTo} theme={theme} toggleTheme={toggleTheme} />}
           </>
         )}
       </div>

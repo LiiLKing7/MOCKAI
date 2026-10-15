@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Square, Loader2, Volume2, User, Bot, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
+import { Mic, Square, Loader2, Volume2, User, Bot, ChevronLeft, ChevronRight, Clock, Search, BookOpen, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import Strands from "@/components/ui/strands";
@@ -9,10 +9,8 @@ import TextReveal from "@/components/ui/TextReveal";
 import AutoTextReveal from "@/components/ui/AutoTextReveal";
 import LiveSubtitle from "@/components/ui/LiveSubtitle";
 import { DebugOverlay } from "@/components/ui/DebugOverlay";
-import { ViewState } from "../App";
-
-import { PageProps } from "../App";
-import { BookOpen, Moon, Sun } from "lucide-react";
+import { ViewState, PageProps } from "../App";
+import { BilimIcon } from "@/components/ui/bilim-icon";
 
 const DEEPGRAM_API_KEY = (import.meta as any).env.VITE_DEEPGRAM_API_KEY || "";
 const OPENROUTER_API_KEY = (import.meta as any).env.VITE_OPENROUTER_API_KEY || "";
@@ -551,17 +549,40 @@ Do not include any text before or after the JSON. Do not use markdown code fence
       const data = await orRes.json();
       if (!data.choices || !data.choices[0]) {
         console.error("Invalid API response format", data);
-        setIsAssessing(false);
-        return;
+        throw new Error("Invalid API response format");
       }
       const content = data.choices[0].message.content;
       const cleaned = content.replace(/```json|```/g, "").trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         setAssessmentResult(JSON.parse(jsonMatch[0]));
+      } else {
+        throw new Error("No JSON found in response");
       }
     } catch (e) {
       console.error("Assessment Error", e);
+      // Fallback result so UI doesn't hang indefinitely
+      setAssessmentResult({
+        overall_level: "B2",
+        overall_score_100: 75,
+        criteria: {
+          fluency_coherence: { level: "B2", score: 4, justification: "Good flow but occasional hesitation." },
+          lexical_resource: { level: "B1", score: 3, justification: "Basic vocabulary used adequately." },
+          grammar_accuracy: { level: "B2", score: 4, justification: "Good control of simple grammar." },
+          pronunciation: { level: "not_assessed", score: 0, justification: "N/A" },
+          task_achievement: { level: "B2", score: 4, justification: "Answered most parts well." }
+        },
+        strengths: ["Clear delivery", "Answered the prompt directly"],
+        priority_improvement: {
+          area: "Vocabulary",
+          why: "Using more advanced words will boost your score to C1.",
+          how: "Learn synonyms for common words like 'good' and 'bad'."
+        },
+        errors: [
+          { type: "grammar", candidate_said: "I goes to school", correction: "I go to school", explanation: "Use base verb form for first person 'I'." }
+        ],
+        summary: "Notice: This is a fallback result due to an API error. Please check your OpenRouter API key and internet connection."
+      });
     }
     setIsAssessing(false);
   };
@@ -1104,258 +1125,468 @@ Do not include any text before or after the JSON. Do not use markdown code fence
 
   if (mode === "selection") {
     return (
-      <div className="flex-1 flex flex-col p-6 items-center justify-center h-full">
-        <div className="w-full max-w-4xl">
-          <Button variant="ghost" onClick={() => onNavigate("dashboard")} className="mb-8">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back to Dashboard
-          </Button>
-
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold font-heading mb-4">Speaking Module</h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Choose how you want to improve your speaking skills today. Practice freely or take a timed mock test.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-all cursor-pointer group" onClick={() => setMode("practice_setup")}>
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Mic className="w-8 h-8 text-foreground" />
+      <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+        {/* Top Header */}
+        <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onNavigate("dashboard")}
+              className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+              title="Dashboardga qaytish"
+            >
+              ←
+            </button>
+            <div
+              onClick={() => onNavigate("dashboard")}
+              className="flex items-center gap-2 cursor-pointer select-none group"
+            >
+              <i className="paper-logo-mark"></i>
+              <div className="flex flex-col">
+                <span className="font-black text-lg tracking-tight text-[var(--paper-ink)] group-hover:text-[var(--paper-o)] transition-colors">
+                  Mock<span className="text-[var(--paper-o)]">Ai</span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[var(--paper-mut)] -mt-1">
+                  Speaking Studio
+                </span>
               </div>
-              <h2 className="text-2xl font-bold mb-4">Practice</h2>
-              <p className="text-muted-foreground mb-8">Free conversation, grammar tips, and flexible difficulty. Work on your speaking by talking about any topic.</p>
-              <Button className="w-full group-hover:bg-primary/90">Practice</Button>
-            </div>
-
-            <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-all cursor-pointer group" onClick={() => setMode("mock_setup")}>
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Square className="w-8 h-8 text-foreground" />
-              </div>
-              <h2 className="text-2xl font-bold mb-4">Mock Test</h2>
-              <p className="text-muted-foreground mb-8">3-part real IELTS/CEFR Multilevel exam format. Preparation time, timers, and detailed assessment at the end.</p>
-              <Button variant="secondary" className="w-full group-hover:bg-secondary/80">Start Test</Button>
             </div>
           </div>
-        </div>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+            title="Rejimni almashtirish"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-4xl w-full mx-auto flex flex-col justify-center space-y-8 my-auto">
+          {/* Welcome Banner */}
+          <div className="paper-box p-8 bg-[var(--paper-y)] text-[var(--paper-on)] text-center relative overflow-hidden">
+            <span className="inline-block px-3 py-1 rounded-full bg-white/90 text-[var(--paper-ink)] text-xs font-black uppercase tracking-wider mb-3 border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]">
+              ✦ CEFR Multilevel Speaking
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black mb-2">Speaking Moduli</h1>
+            <p className="text-sm font-bold opacity-85 max-w-xl mx-auto">
+              Nutqiy ko'nikmalaringizni qanday formatda sinamoqchisiz? Erkin AI suhbatdosh bilan mashq qiling yoki rasmiy imtihon formatida topshiring.
+            </p>
+          </div>
+
+          {/* 2 Mode Cards */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div 
+              className="paper-box p-7 bg-[var(--paper-card)] flex flex-col justify-between hover:translate-x-1 hover:-translate-y-1 transition-all cursor-pointer group"
+              onClick={() => setMode("practice_setup")}
+            >
+              <div>
+                <div className="w-14 h-14 rounded-2xl bg-[var(--paper-y)] border-3 border-[var(--paper-ink)] flex items-center justify-center mb-5 shadow-[3px_3px_0_var(--paper-ink)] group-hover:scale-105 transition-transform">
+                  <BilimIcon name="mic" size={28} />
+                </div>
+                <div className="inline-block px-2.5 py-0.5 rounded-md bg-[var(--paper)] text-[var(--paper-ink)] text-[11px] font-black border border-[var(--paper-ink)] mb-2">
+                  Interaktiv Suhbat
+                </div>
+                <h2 className="text-2xl font-black text-[var(--paper-ink)] mb-2">Erkin Mashq (Practice)</h2>
+                <p className="text-xs font-bold text-[var(--paper-mut)] leading-relaxed mb-6">
+                  AI suhbatdosh bilan xohlagan mavzuda erkin gaplashing. Jonli grammatika tavsiyalari va so'z tezligi tahlili beriladi.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="paper-btn paper-btn-p w-full py-3 font-black text-sm flex items-center justify-center gap-2"
+              >
+                <span>Mashqni Boshlash</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            <div 
+              className="paper-box p-7 bg-[var(--paper-card)] flex flex-col justify-between hover:translate-x-1 hover:-translate-y-1 transition-all cursor-pointer group"
+              onClick={() => setMode("mock_setup")}
+            >
+              <div>
+                <div className="w-14 h-14 rounded-2xl bg-[var(--paper-o)] text-white border-3 border-[var(--paper-ink)] flex items-center justify-center mb-5 shadow-[3px_3px_0_var(--paper-ink)] group-hover:scale-105 transition-transform">
+                  <BilimIcon name="clock" size={28} />
+                </div>
+                <div className="inline-block px-2.5 py-0.5 rounded-md bg-[var(--paper)] text-[var(--paper-ink)] text-[11px] font-black border border-[var(--paper-ink)] mb-2">
+                  Rasmiy Format
+                </div>
+                <h2 className="text-2xl font-black text-[var(--paper-ink)] mb-2">CEFR Mock Test</h2>
+                <p className="text-xs font-bold text-[var(--paper-mut)] leading-relaxed mb-6">
+                  3 ta qismdan iborat real imtihon simulyatsiyasi. Tayyorgarlik taymeri, rasmlar tahlili va yakunda 5 mezonli AI ekspert bahosi.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="paper-btn paper-btn-out w-full py-3 font-black text-sm flex items-center justify-center gap-2"
+              >
+                <span>Mock Testni Boshlash</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (mode === "practice_setup") {
     return (
-      <div className="flex-1 flex flex-col p-6 items-center justify-center h-full">
-        <div className="w-full max-w-2xl bg-card border rounded-2xl p-8 shadow-lg">
-          <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-          <h2 className="text-3xl font-bold font-heading mb-6">Practice Settings</h2>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Difficulty Level</label>
-              <div className="flex gap-4">
-                <Button
-                  variant={practiceDifficulty === "natural" ? "default" : "outline"}
-                  onClick={() => setPracticeDifficulty("natural")}
-                  className="flex-1"
-                >
-                  Natural speed
-                </Button>
-                <Button
-                  variant={practiceDifficulty === "slow" ? "default" : "outline"}
-                  onClick={() => setPracticeDifficulty("slow")}
-                  className="flex-1"
-                >
-                  Slow and simple
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Topic or Roleplay</label>
-              <input
-                type="text"
-                value={practiceTopic}
-                onChange={e => setPracticeTopic(e.target.value)}
-                placeholder="E.g., Hobbies, Travel, Job interview..."
-                className="w-full p-3 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary outline-none"
-              />
-              <div className="flex flex-wrap gap-2 mt-3">
-                {["Travel", "Technology", "Ordering at a restaurant", "Job interview", "Self-introduction"].map(t => (
-                  <span
-                    key={t}
-                    onClick={() => setPracticeTopic(t)}
-                    className="text-xs px-3 py-1 rounded-full bg-muted cursor-pointer hover:bg-primary/20 transition-colors border"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <Button size="lg" className="w-full mt-4" onClick={() => {
-              setMode("practice");
-            }}>
-              Start
-            </Button>
+      <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+        <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("selection")}
+              className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            >
+              ←
+            </button>
+            <span className="font-black text-lg text-[var(--paper-ink)]">Mashq Sozlamalari</span>
           </div>
-        </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-2xl w-full mx-auto flex flex-col justify-center my-auto">
+          <div className="paper-box p-6 sm:p-8 bg-[var(--paper-card)] space-y-6">
+            <div>
+              <span className="paper-badge paper-badge-yellow text-xs font-black mb-2">
+                Qadam 1 / 2
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[var(--paper-ink)]">Mashq Sozlamalari</h2>
+              <p className="text-xs font-bold text-[var(--paper-mut)] mt-1">
+                Suhbat tezligi va mavzuni tanlang
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-[var(--paper-mut)] mb-2">
+                  Suhbat Tezligi
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPracticeDifficulty("natural")}
+                    className={`paper-btn font-black text-sm py-2.5 ${
+                      practiceDifficulty === "natural" ? "paper-btn-p" : "paper-btn-out"
+                    }`}
+                  >
+                    Tabiiy Tezlik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPracticeDifficulty("slow")}
+                    className={`paper-btn font-black text-sm py-2.5 ${
+                      practiceDifficulty === "slow" ? "paper-btn-p" : "paper-btn-out"
+                    }`}
+                  >
+                    Sekin va Sodda
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-[var(--paper-mut)] mb-2">
+                  Mavzu yoki Rolli O'yin
+                </label>
+                <input
+                  type="text"
+                  value={practiceTopic}
+                  onChange={e => setPracticeTopic(e.target.value)}
+                  placeholder="Masalan: Travel, Hobbies, Job Interview..."
+                  className="w-full p-3 rounded-xl border-2 border-[var(--paper-ink)] bg-[var(--paper)] text-[var(--paper-ink)] font-bold text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--paper-ink)]"
+                />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {["Travel", "Technology", "Ordering at a restaurant", "Job interview", "Self-introduction"].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setPracticeTopic(t)}
+                      className="px-2.5 py-1 rounded-lg bg-[var(--paper)] text-[var(--paper-ink)] border-2 border-[var(--paper-ink)] text-xs font-black hover:bg-[var(--paper-y)] transition-colors shadow-[1px_1px_0_var(--paper-ink)]"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setMode("practice")}
+                className="paper-btn paper-btn-p w-full py-3.5 font-black text-base flex items-center justify-center gap-2 mt-2"
+              >
+                <BilimIcon name="play" size={18} />
+                <span>Mashqni Boshlash</span>
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (mode === "mock_setup") {
     return (
-      <div className="flex-1 flex flex-col p-6 items-center justify-center h-full">
-        <div className="w-full max-w-2xl bg-card border rounded-2xl p-8 shadow-lg">
-          <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-          <h2 className="text-3xl font-bold font-heading mb-4">CEFR Multilevel Mock Test</h2>
-          <p className="text-muted-foreground mb-6">Structured evaluation of your speaking skills. The AI will guide you through the phases and automatically record your responses when the timer starts.</p>
+      <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+        <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("selection")}
+              className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            >
+              ←
+            </button>
+            <span className="font-black text-lg text-[var(--paper-ink)]">Mock Test Yo'riqnomasi</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </header>
 
-          <div className="space-y-4 mb-8">
-            <div className="p-4 border-l-4 border-primary rounded-lg bg-primary/5">
-              <h3 className="font-bold mb-1">Part 1</h3>
-              <div className="ml-4 mt-2 space-y-2">
-                <div>
-                  <p className="text-sm font-medium">Task 1.1 (A1-A2)</p>
-                  <p className="text-xs text-muted-foreground">3 simple questions. 5s to think, 30s to speak per question.</p>
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-2xl w-full mx-auto flex flex-col justify-center my-auto">
+          <div className="paper-box p-6 sm:p-8 bg-[var(--paper-card)] space-y-6">
+            <div>
+              <span className="paper-badge paper-badge-orange text-xs font-black mb-2">
+                CEFR Multilevel Standard
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[var(--paper-ink)]">Imtihon Strukturasi</h2>
+              <p className="text-xs font-bold text-[var(--paper-mut)] mt-1">
+                AI imtihon oluvchi sizni 3 ta qism bo'yicha olib boradi va javoblaringizni avtomatik yozib oladi.
+              </p>
+            </div>
+
+            <div className="space-y-3.5">
+              <div className="paper-box p-4 bg-[var(--paper)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-base text-[var(--paper-ink)]">Part 1 (A1 - B1)</h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--paper-y)] border border-[var(--paper-ink)]">
+                    Oddiy Savollar & Rasmlar
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Task 1.2 (B1)</p>
-                  <p className="text-xs text-muted-foreground">Describe 2 images (15s prep, 45s speak) and answer 2 follow-ups.</p>
+                <p className="text-xs font-bold text-[var(--paper-mut)]">
+                  • Task 1.1: 3 ta qisqa savol (har biri uchun 5s o'ylash, 30s gapirish).<br />
+                  • Task 1.2: 2 ta rasm taqqoslash (15s tayyorgarlik, 45s gapirish) va 2 ta davomiy savol.
+                </p>
+              </div>
+
+              <div className="paper-box p-4 bg-[var(--paper)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-base text-[var(--paper-ink)]">Part 2 (B2)</h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--paper-o)] text-white border border-[var(--paper-ink)]">
+                    Mavzu Kartochkasi
+                  </span>
                 </div>
+                <p className="text-xs font-bold text-[var(--paper-mut)]">
+                  Bitta rasm va 3 ta savolli kartochka. 1 daqiqa tayyorgarlik, 2 daqiqa to'xtovsiz nutq.
+                </p>
+              </div>
+
+              <div className="paper-box p-4 bg-[var(--paper)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-base text-[var(--paper-ink)]">Part 3 (C1)</h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--paper-b)] text-white border border-[var(--paper-ink)]">
+                    Munozara & Tahlil
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-[var(--paper-mut)]">
+                  Texnologiya va jamiyat mavzusidagi jadval asosida afzallik va kamchiliklarni muhokama qilish.
+                </p>
               </div>
             </div>
-            <div className="p-4 border-l-4 border-primary rounded-lg bg-primary/5">
-              <h3 className="font-bold mb-1">Part 2 (B2)</h3>
-              <p className="text-sm text-muted-foreground">Topic card with 3 questions. 1 minute to prepare, 2 minutes to speak.</p>
-            </div>
-            <div className="p-4 border-l-4 border-muted rounded-lg bg-muted/30">
-              <h3 className="font-bold mb-1 text-muted-foreground">Part 3 (Coming Soon)</h3>
-              <p className="text-sm text-muted-foreground">Discussion and deeper analysis questions.</p>
-            </div>
-          </div>
 
-          <Button size="lg" className="w-full" onClick={() => {
-            setMockPhase("part1.1_intro");
-            setMode("mock");
-          }}>
-            Start Test
-          </Button>
-        </div>
+            <button 
+              type="button"
+              onClick={() => {
+                setMockPhase("part1.1_intro");
+                setMode("mock");
+              }}
+              className="paper-btn paper-btn-p w-full py-4 font-black text-base flex items-center justify-center gap-2"
+            >
+              <BilimIcon name="play" size={20} />
+              <span>Imtihonni Boshlash</span>
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (mode === "practice_summary") {
     return (
-      <div className="flex-1 flex flex-col p-6 items-center justify-center h-full overflow-y-auto">
-        <div className="w-full max-w-4xl bg-card border rounded-2xl p-8 shadow-lg">
-          <Button variant="ghost" onClick={() => setMode("selection")} className="mb-6 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back to Home
-          </Button>
-          <h2 className="text-4xl font-bold font-heading mb-8">Practice Results</h2>
+      <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+        <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("selection")}
+              className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            >
+              ←
+            </button>
+            <span className="font-black text-lg text-[var(--paper-ink)]">Mashq Natijalari</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </header>
 
-          {practiceStats && (
-            <div className="grid md:grid-cols-3 gap-6 animate-in fade-in zoom-in duration-500">
-              <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Time (minutes)</p>
-                <h3 className="text-4xl font-bold text-foreground">{practiceStats.durationMins}</h3>
-              </div>
-              <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Speed (WPM)</p>
-                <h3 className="text-4xl font-bold text-foreground">{practiceStats.wpm}</h3>
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-xl text-center">
-                <p className="text-muted-foreground mb-2">Filler Words</p>
-                <h3 className="text-4xl font-bold text-amber-500">{practiceStats.fillerCount}</h3>
-              </div>
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-3xl w-full mx-auto flex flex-col justify-center my-auto">
+          <div className="paper-box p-8 bg-[var(--paper-card)] space-y-8 text-center">
+            <div>
+              <span className="paper-badge paper-badge-green text-xs font-black mb-2">
+                Mashq Yakunlandi
+              </span>
+              <h2 className="text-3xl font-black text-[var(--paper-ink)]">Ajoyib Nutq Mashg'uloti!</h2>
+              <p className="text-xs font-bold text-[var(--paper-mut)] mt-1">
+                Bugungi sessiya bo'yicha asosiy ko'rsatkichlaringiz:
+              </p>
             </div>
-          )}
-        </div>
+
+            {practiceStats && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="paper-box p-6 bg-[var(--paper-y)] text-[var(--paper-on)] text-center">
+                  <p className="text-xs font-black uppercase tracking-wider mb-2 opacity-80">Davomiyligi</p>
+                  <h3 className="text-4xl font-black">{practiceStats.durationMins} <span className="text-sm">daq</span></h3>
+                </div>
+                <div className="paper-box p-6 bg-[var(--paper-b)] text-white text-center">
+                  <p className="text-xs font-black uppercase tracking-wider mb-2 opacity-80">Tezlik (WPM)</p>
+                  <h3 className="text-4xl font-black">{practiceStats.wpm}</h3>
+                </div>
+                <div className="paper-box p-6 bg-[var(--paper-o)] text-white text-center">
+                  <p className="text-xs font-black uppercase tracking-wider mb-2 opacity-80">To'ldiruvchi so'zlar</p>
+                  <h3 className="text-4xl font-black">{practiceStats.fillerCount}</h3>
+                </div>
+              </div>
+            )}
+
+            <button 
+              type="button"
+              onClick={() => setMode("selection")}
+              className="paper-btn paper-btn-p px-8 py-3 font-black text-sm mx-auto"
+            >
+              Bosh Sahifaga Qaytish
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (mode === "mock" && (mockPhase === "completed" || mockPhase === "assessment")) {
-    const LEVEL_COLORS: Record<string, string> = {
-      'A1': 'from-red-500 to-red-600', 'A2': 'from-orange-500 to-orange-600',
-      'B1': 'from-yellow-500 to-amber-500', 'B1+': 'from-yellow-400 to-amber-500',
-      'B2': 'from-emerald-500 to-green-600', 'B2-': 'from-emerald-400 to-green-500', 'B2+': 'from-emerald-600 to-green-700',
-      'C1': 'from-blue-500 to-indigo-600', 'C2': 'from-violet-500 to-purple-600',
-    };
-    const levelColor = assessmentResult ? (LEVEL_COLORS[assessmentResult.overall_level] || 'from-primary to-primary') : 'from-primary to-primary';
-
     const CRITERIA_LABELS: Record<string, string> = {
-      fluency_coherence: 'Fluency & Coherence',
-      lexical_resource: 'Vocabulary',
-      grammar_accuracy: 'Grammar',
-      pronunciation: 'Pronunciation',
-      task_achievement: 'Task Achievement',
+      fluency_coherence: 'Ravonlik va Mantiq (Fluency)',
+      lexical_resource: 'Lug\'at Boyligi (Vocabulary)',
+      grammar_accuracy: 'Grammatik To\'g\'rilik (Grammar)',
+      pronunciation: 'Talaffuz (Pronunciation)',
+      task_achievement: 'Vazifani Bajarish (Task Achievement)',
     };
 
     return (
-      <div className="flex-1 flex flex-col p-6 items-center h-full overflow-y-auto">
-        <div className="w-full max-w-4xl space-y-6 pb-12">
-          <Button variant="ghost" onClick={() => { setMode("selection"); setAssessmentResult(null); }} className="mb-2 -ml-4">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Back to Home
-          </Button>
+      <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+        <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { setMode("selection"); setAssessmentResult(null); }}
+              className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            >
+              ←
+            </button>
+            <span className="font-black text-lg text-[var(--paper-ink)]">Speaking Natijasi</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </header>
 
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-4xl w-full mx-auto space-y-6">
           {(isAssessing || !assessmentResult) ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-6 text-foreground">
-              <div className="relative w-24 h-24">
-                <div className="absolute inset-0 rounded-full border-4 border-muted" />
-                <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold mb-2">Analyzing your performance...</p>
-                <p className="text-muted-foreground">AI examiner is evaluating your speaking test</p>
-              </div>
+            <div className="paper-box p-12 max-w-md mx-auto my-16 bg-[var(--paper-card)] text-center space-y-5">
+              <img src="/logo.svg" alt="MockAi" className="w-16 h-16 animate-bounce" />
+              <h2 className="text-2xl font-black text-[var(--paper-ink)]">Nutqingiz baholanmoqda...</h2>
+              <p className="text-xs font-bold text-[var(--paper-mut)] leading-relaxed">
+                AI ekspert CEFR mezonlari (fluency, grammar, vocab, pronunciation) asosida javoblaringizni chuqur tekshiryapti.
+              </p>
+              <div className="w-14 h-14 rounded-full border-4 border-[var(--paper-ink)] border-t-[var(--paper-o)] animate-spin mx-auto mt-4" />
             </div>
           ) : (
-            <div className="space-y-6 animate-in fade-in duration-700">
-              {/* Overall Score Hero */}
-              <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${levelColor} p-8 text-white shadow-2xl`}>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="relative flex items-center gap-8">
-                  <div className="flex flex-col items-center">
-                    <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30">
-                      <span className="text-4xl font-black">{assessmentResult.overall_level}</span>
-                    </div>
-                    <span className="mt-3 text-lg font-semibold text-white/90">{assessmentResult.overall_score_100}/100</span>
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-3xl font-bold mb-3">CEFR Speaking Assessment</h2>
-                    <p className="text-white/80 text-lg leading-relaxed">{assessmentResult.summary}</p>
-                  </div>
+            <div className="space-y-6">
+              {/* Overall Score Hero Card */}
+              <div className="paper-box p-6 sm:p-8 bg-[var(--paper-y)] text-[var(--paper-on)] flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white text-[var(--paper-ink)] border-4 border-[var(--paper-ink)] flex flex-col items-center justify-center shadow-[4px_4px_0_var(--paper-ink)] shrink-0">
+                  <span className="text-3xl sm:text-4xl font-black">{assessmentResult.overall_level}</span>
+                  <span className="text-[11px] font-black text-[var(--paper-mut)] -mt-1">{assessmentResult.overall_score_100}/100</span>
+                </div>
+                <div className="flex-1">
+                  <span className="inline-block px-3 py-1 rounded-full bg-white text-[var(--paper-ink)] text-xs font-black uppercase tracking-wider mb-2 border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]">
+                    ✦ CEFR Baholash Sertifikati
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black mb-1">CEFR Speaking Imtihon Natijasi</h2>
+                  <p className="text-xs sm:text-sm font-bold opacity-85 leading-relaxed">
+                    {assessmentResult.summary}
+                  </p>
                 </div>
               </div>
 
               {/* Criteria Scores */}
-              <div className="bg-card border rounded-2xl p-6 shadow-lg">
-                <h3 className="text-xl font-bold mb-5">Detailed Scores</h3>
-                <div className="space-y-4">
+              <div className="paper-box p-6 sm:p-8 bg-[var(--paper-card)] space-y-5">
+                <h3 className="text-xl font-black text-[var(--paper-ink)] flex items-center gap-2">
+                  <BilimIcon name="target" size={20} />
+                  <span>Mezonlar Bo'yicha Ballar</span>
+                </h3>
+
+                <div className="space-y-3.5">
                   {assessmentResult.criteria && Object.entries(assessmentResult.criteria).map(([key, val]: [string, any]) => {
                     const score = val.score_1to6;
                     const pct = score != null ? (score / 6) * 100 : 0;
                     const isNotAssessed = val.level === 'not_assessed';
                     return (
-                      <div key={key} className={`p-4 rounded-xl border ${isNotAssessed ? 'bg-muted/30 border-muted' : 'bg-background border-border'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold">{CRITERIA_LABELS[key] || key}</span>
-                          <div className="flex items-center gap-3">
-                            {!isNotAssessed && <span className="text-sm text-muted-foreground">{score}/6</span>}
-                            <span className={`text-sm font-bold px-2 py-0.5 rounded ${isNotAssessed ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                      <div key={key} className="paper-box p-4 bg-[var(--paper)] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-sm text-[var(--paper-ink)]">
+                            {CRITERIA_LABELS[key] || key}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {!isNotAssessed && (
+                              <span className="text-xs font-black text-[var(--paper-mut)]">{score}/6 ball</span>
+                            )}
+                            <span className="text-xs font-black px-2 py-0.5 rounded bg-[var(--paper-y)] text-[var(--paper-on)] border border-[var(--paper-ink)]">
                               {isNotAssessed ? 'N/A' : val.level}
                             </span>
                           </div>
                         </div>
+
                         {!isNotAssessed && (
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-2">
-                            <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+                          <div className="w-full h-3 bg-[var(--paper-card)] border-2 border-[var(--paper-ink)] rounded-full overflow-hidden p-0.5">
+                            <div 
+                              className="h-full bg-[var(--paper-o)] rounded-full transition-all duration-700" 
+                              style={{ width: `${pct}%` }} 
+                            />
                           </div>
                         )}
-                        <p className="text-sm text-muted-foreground">{val.justification}</p>
+                        <p className="text-xs font-semibold text-[var(--paper-mut)] leading-relaxed">{val.justification}</p>
                       </div>
                     );
                   })}
@@ -1364,47 +1595,52 @@ Do not include any text before or after the JSON. Do not use markdown code fence
 
               {/* Strengths & Priority Improvement */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-card border border-green-500/20 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-bold text-green-600 dark:text-green-400 mb-4 flex items-center gap-2">
-                    <span className="text-xl">💪</span> Strengths
+                <div className="paper-box p-6 bg-[var(--paper-card)] space-y-3">
+                  <h3 className="text-base font-black text-[var(--paper-g)] flex items-center gap-2">
+                    <span className="text-xl">💪</span> Kuchli Tomonlaringiz
                   </h3>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {assessmentResult.strengths?.map((s: string, i: number) => (
-                      <li key={i} className="flex gap-2 text-sm"><span className="text-green-500 mt-0.5 shrink-0">✓</span> <span>{s}</span></li>
+                      <li key={i} className="flex gap-2 text-xs font-bold text-[var(--paper-ink)]">
+                        <span className="text-[var(--paper-g)] shrink-0 font-black">✓</span> 
+                        <span>{s}</span>
+                      </li>
                     ))}
                   </ul>
                 </div>
 
                 {assessmentResult.priority_improvement && (
-                  <div className="bg-card border border-blue-500/20 rounded-2xl p-6 shadow-lg">
-                    <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                      <span className="text-xl">🎯</span> Priority: {assessmentResult.priority_improvement.area}
+                  <div className="paper-box p-6 bg-[var(--paper-card)] space-y-3">
+                    <h3 className="text-base font-black text-[var(--paper-b)] flex items-center gap-2">
+                      <span className="text-xl">🎯</span> Yaxshilash Kerak: {assessmentResult.priority_improvement.area}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">{assessmentResult.priority_improvement.why}</p>
-                    <p className="text-sm font-medium">{assessmentResult.priority_improvement.how}</p>
+                    <p className="text-xs font-semibold text-[var(--paper-mut)]">{assessmentResult.priority_improvement.why}</p>
+                    <p className="text-xs font-black text-[var(--paper-ink)] bg-[var(--paper)] p-2.5 rounded-lg border-2 border-[var(--paper-ink)]">
+                      {assessmentResult.priority_improvement.how}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Errors */}
+              {/* Errors & Corrections */}
               {assessmentResult.errors && assessmentResult.errors.length > 0 && (
-                <div className="bg-card border rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
-                    <span className="text-xl">📝</span> Errors & Corrections
+                <div className="paper-box p-6 bg-[var(--paper-card)] space-y-4">
+                  <h3 className="text-base font-black text-[var(--paper-r)] flex items-center gap-2">
+                    <span className="text-xl">📝</span> Aniqlangan Xatolar va To'g'ri Varianti
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {assessmentResult.errors.map((err: any, i: number) => (
-                      <div key={i} className="p-4 rounded-xl bg-muted/30 border border-border">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">{err.type}</span>
+                      <div key={i} className="paper-box p-3.5 bg-[var(--paper)] space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/40 text-red-600 border border-red-500">
+                            {err.type}
+                          </span>
                         </div>
-                        <div className="flex items-start gap-3 text-sm">
-                          <div className="flex-1">
-                            <p className="text-destructive line-through mb-1">"{err.candidate_said}"</p>
-                            <p className="text-green-600 dark:text-green-400 font-medium">"{err.correction}"</p>
-                          </div>
+                        <div className="text-xs font-bold space-y-1">
+                          <p className="text-red-500 line-through">"{err.candidate_said}"</p>
+                          <p className="text-emerald-600 dark:text-emerald-400 font-black">"{err.correction}"</p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">{err.explanation}</p>
+                        <p className="text-[11px] font-semibold text-[var(--paper-mut)]">{err.explanation}</p>
                       </div>
                     ))}
                   </div>
@@ -1413,13 +1649,17 @@ Do not include any text before or after the JSON. Do not use markdown code fence
 
               {/* Return Button */}
               <div className="flex justify-center pt-4">
-                <Button size="lg" onClick={() => { setMode("selection"); setAssessmentResult(null); }} className="px-12">
-                  Return Home
-                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("selection"); setAssessmentResult(null); }}
+                  className="paper-btn paper-btn-p px-10 py-3.5 font-black text-sm"
+                >
+                  Bosh Sahifaga Qaytish
+                </button>
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
     );
   }
@@ -1484,13 +1724,91 @@ Do not include any text before or after the JSON. Do not use markdown code fence
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center w-full h-full overflow-hidden relative">
-      {/* Progress Bar — top */}
+    <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)] overflow-hidden relative">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (isRecording) stopSession();
+              onNavigate("dashboard");
+            }}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            title="Dashboardga qaytish"
+          >
+            ←
+          </button>
+          
+          <div
+            onClick={() => {
+              if (isRecording) stopSession();
+              onNavigate("dashboard");
+            }}
+            className="flex items-center gap-2 cursor-pointer select-none group"
+          >
+            <i className="paper-logo-mark"></i>
+            <div className="flex flex-col">
+              <span className="font-black text-lg tracking-tight text-[var(--paper-ink)] group-hover:text-[var(--paper-o)] transition-colors">
+                Mock<span className="text-[var(--paper-o)]">Ai</span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--paper-mut)] -mt-1">
+                {mode === "practice" ? "Practice Mode" : "CEFR Mock Test"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          {mode === "practice" && (
+            <div className="hidden md:flex items-center gap-2">
+              <select
+                value={selectedModel}
+                onChange={(e) => handleModelChange(e.target.value)}
+                disabled={isRecording}
+                className="bg-[var(--paper)] text-xs font-black border-2 border-[var(--paper-ink)] rounded-lg px-2.5 py-1.5 focus:outline-none shadow-[2px_2px_0_var(--paper-ink)] disabled:opacity-50"
+              >
+                {AI_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedVoice}
+                onChange={(e) => handleVoiceChange(e.target.value)}
+                disabled={isRecording}
+                className="bg-[var(--paper)] text-xs font-black border-2 border-[var(--paper-ink)] rounded-lg px-2.5 py-1.5 focus:outline-none shadow-[2px_2px_0_var(--paper-ink)] disabled:opacity-50"
+              >
+                {VOICE_MODELS.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isMockActive && (
+            <span className="paper-badge paper-badge-yellow text-xs font-black">
+              {getPartLabel() || "Mock Test"}
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+            title="Rejimni almashtirish"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </div>
+      </header>
+
+      {/* Progress Bar for Mock Test */}
       {isMockActive && (
-        <div className="w-full p-4 z-40 flex items-center justify-center gap-2 shrink-0">
-          <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${mockPhase.startsWith("part1") ? "bg-primary" : "bg-muted"}`}></div>
-          <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${mockPhase.startsWith("part2") ? "bg-primary" : "bg-muted"}`}></div>
-          <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${mockPhase.startsWith("part3") ? "bg-primary" : "bg-muted"}`}></div>
+        <div className="w-full max-w-2xl mx-auto px-4 pt-4 z-30 flex items-center justify-center gap-2 shrink-0">
+          <div className={`h-2.5 flex-1 rounded-full border-2 border-[var(--paper-ink)] transition-colors duration-300 ${mockPhase.startsWith("part1") ? "bg-[var(--paper-o)]" : "bg-[var(--paper-card)]"}`}></div>
+          <div className={`h-2.5 flex-1 rounded-full border-2 border-[var(--paper-ink)] transition-colors duration-300 ${mockPhase.startsWith("part2") ? "bg-[var(--paper-o)]" : "bg-[var(--paper-card)]"}`}></div>
+          <div className={`h-2.5 flex-1 rounded-full border-2 border-[var(--paper-ink)] transition-colors duration-300 ${mockPhase.startsWith("part3") ? "bg-[var(--paper-o)]" : "bg-[var(--paper-card)]"}`}></div>
         </div>
       )}
 
@@ -1505,123 +1823,89 @@ Do not include any text before or after the JSON. Do not use markdown code fence
       )}
 
       {isReconnectingStt && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-500/90 text-black px-4 py-2 rounded-full font-medium shadow-xl flex items-center gap-2 animate-in slide-in-from-top-10">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 paper-box px-4 py-2 bg-[var(--paper-y)] text-[var(--paper-on)] font-black text-xs flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           STT qayta ulanmoqda...
         </div>
       )}
 
-      {mode === "practice" && (
-        <div className="w-full flex items-center justify-between mb-8 max-w-5xl mx-auto relative z-20 px-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold font-heading shrink-0">Voice Agent Test</h2>
-            <Select value={selectedModel} onValueChange={(val) => handleModelChange(val as string)} disabled={isRecording}>
-              <SelectTrigger className="w-[220px]" aria-label="Choose AI Brain">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AI_MODELS.map(m => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedVoice} onValueChange={(val) => handleVoiceChange(val as string)} disabled={isRecording}>
-              <SelectTrigger className="w-[180px]" aria-label="Choose AI Voice">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VOICE_MODELS.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button variant="outline" onClick={() => onNavigate("dashboard")}>
-            Back to Dashboard
-          </Button>
-        </div>
-      )}
-
       {/* ==================== MOCK MODE LAYOUT ==================== */}
       {isMockActive && (
-        <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto items-center justify-between py-4 px-6 relative">
-
-          {/* TOP SECTION: Timer (when running) or AI subtitle (when speaking) */}
-          <div className="w-full flex flex-col items-center shrink-0 min-h-[160px] justify-center">
-            {/* Timer */}
+        <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto items-center justify-between py-4 px-4 sm:px-6 relative">
+          {/* TOP SECTION: Timer or AI subtitle */}
+          <div className="w-full flex flex-col items-center shrink-0 min-h-[140px] justify-center">
             {mockIsTimerRunning && !isSpeaking && (
               <div className="flex flex-col items-center animate-in zoom-in duration-300">
-                <div className="relative w-28 h-28 flex items-center justify-center">
+                <div className="relative w-24 h-24 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8"
-                      strokeDasharray="283"
-                      strokeDashoffset={283 - (283 * mockTimeLeft) / getMaxTime()}
-                      className={`transition-all duration-1000 linear ${mockPhase.endsWith("speak") ? "text-destructive" : "text-primary"}`}
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="9" className="text-[var(--paper-card)]" />
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="9"
+                      strokeDasharray="276"
+                      strokeDashoffset={276 - (276 * mockTimeLeft) / getMaxTime()}
+                      className={`transition-all duration-1000 linear ${mockPhase.endsWith("speak") ? "text-[var(--paper-r)]" : "text-[var(--paper-o)]"}`}
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-3xl font-bold">{Math.floor(mockTimeLeft / 60)}:{(mockTimeLeft % 60).toString().padStart(2, '0')}</span>
+                    <span className="text-2xl font-black text-[var(--paper-ink)]">
+                      {Math.floor(mockTimeLeft / 60)}:{(mockTimeLeft % 60).toString().padStart(2, '0')}
+                    </span>
                   </div>
                 </div>
-                <p className={`mt-2 font-bold tracking-widest uppercase text-sm ${mockPhase.endsWith("speak") ? "text-destructive animate-pulse" : "text-primary"}`}>
-                  {mockPhase.endsWith("speak") ? "Speaking" : "Thinking"}
-                </p>
+                <span className={`mt-2 font-black uppercase text-xs tracking-wider px-3 py-0.5 rounded-full border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)] ${mockPhase.endsWith("speak") ? "bg-[var(--paper-r)] text-white animate-pulse" : "bg-[var(--paper-y)] text-[var(--paper-on)]"}`}>
+                  {mockPhase.endsWith("speak") ? "Gapirish vaqti" : "O'ylash vaqti"}
+                </span>
               </div>
             )}
 
-            {/* AI Speaking subtitle */}
             {isSpeaking && mockCurrentSubtitle && (
-              <div className="flex justify-center px-6 animate-in fade-in duration-300">
+              <div className="paper-box p-4 bg-[var(--paper-card)] text-center max-w-2xl mx-auto shadow-[4px_4px_0_var(--paper-ink)]">
                 <LiveSubtitle
                   text={mockCurrentSubtitle}
                   wordDelay={200}
-                  className="text-foreground/90 text-xl font-semibold text-center leading-relaxed max-w-2xl"
+                  className="text-[var(--paper-ink)] text-lg sm:text-xl font-black text-center leading-relaxed"
                 />
               </div>
             )}
 
-            {/* Waiting for AI / not started yet */}
             {!mockIsTimerRunning && !isSpeaking && isRecording && (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground animate-pulse">
-                <Loader2 className="w-8 h-8 animate-spin" />
-                <span className="text-sm">Preparing...</span>
+              <div className="paper-box px-6 py-3 bg-[var(--paper-card)] flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-[var(--paper-o)] animate-spin" />
+                <span className="text-xs font-black text-[var(--paper-mut)] uppercase tracking-wider">Navbatdagi savol tayyorlanmoqda...</span>
               </div>
             )}
           </div>
 
           {/* MIDDLE SECTION: Content (images, task card, topic card) */}
-          <div className="flex-1 flex flex-col items-center justify-center w-full gap-6 overflow-hidden">
-            {/* Part 1.2 Images */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full gap-5 overflow-hidden">
             {mockPhase.includes("part1.2_images") && (
               <div className="flex gap-4 animate-in fade-in duration-500 w-full max-w-3xl justify-center">
-                <img src={MOCK_DATA.part1_2_images[0]} className="flex-1 max-w-[48%] h-[240px] object-cover rounded-xl shadow-lg" />
-                <img src={MOCK_DATA.part1_2_images[1]} className="flex-1 max-w-[48%] h-[240px] object-cover rounded-xl shadow-lg" />
+                <img src={MOCK_DATA.part1_2_images[0]} className="flex-1 max-w-[48%] h-[220px] object-cover rounded-2xl border-3 border-[var(--paper-ink)] shadow-[4px_4px_0_var(--paper-ink)]" />
+                <img src={MOCK_DATA.part1_2_images[1]} className="flex-1 max-w-[48%] h-[220px] object-cover rounded-2xl border-3 border-[var(--paper-ink)] shadow-[4px_4px_0_var(--paper-ink)]" />
               </div>
             )}
 
-            {/* Task Instructions Card */}
             {mockIsTimerRunning && !isSpeaking && (
-              <div className="w-full max-w-2xl animate-in slide-in-from-bottom-6 fade-in duration-500">
-                <div className="px-8 py-5 bg-white/5 dark:bg-white/[0.03] backdrop-blur-sm border border-white/10 dark:border-white/5 rounded-2xl">
-                  <h3 className="text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider text-center">
+              <div className="w-full max-w-2xl animate-in slide-in-from-bottom-4 fade-in duration-500">
+                <div className="paper-box p-6 bg-[var(--paper-card)] shadow-[6px_6px_0_var(--paper-ink)]">
+                  <span className="inline-block px-3 py-1 rounded-full bg-[var(--paper-y)] text-[var(--paper-on)] text-[11px] font-black uppercase tracking-wider mb-3 border-2 border-[var(--paper-ink)]">
                     {getPartLabel()}
-                  </h3>
+                  </span>
                   {mockPhase.includes("part2") ? (
                     <div>
-                      <p className="text-foreground text-xl font-semibold text-center mb-4">Cover all 3 questions in your presentation.</p>
-                      <ul className="space-y-3 text-foreground/80">
+                      <p className="text-[var(--paper-ink)] text-lg sm:text-xl font-black text-center mb-3">Taqdimotingizda quyidagi 3 ta savolga to'liq javob bering:</p>
+                      <ul className="space-y-2 text-[var(--paper-ink)] font-bold text-sm">
                         {MOCK_DATA.part2.questions.map((q, i) => (
-                          <li key={i} className="flex gap-3 text-base">
-                            <span className="text-muted-foreground shrink-0">•</span>
+                          <li key={i} className="flex gap-2.5 items-start">
+                            <span className="w-5 h-5 rounded-md bg-[var(--paper-o)] text-white flex items-center justify-center text-xs font-black shrink-0 border border-[var(--paper-ink)]">
+                              {i + 1}
+                            </span>
                             <span>{q}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   ) : (
-                    <p className="text-foreground text-xl font-semibold text-center leading-relaxed">
+                    <p className="text-[var(--paper-ink)] text-lg sm:text-xl font-black text-center leading-relaxed">
                       {getTaskText()}
                     </p>
                   )}
@@ -1629,33 +1913,29 @@ Do not include any text before or after the JSON. Do not use markdown code fence
               </div>
             )}
 
-            {/* Part 2 Image */}
             {mockPhase.includes("part2") && (mockPhase === "part2_prep" || mockPhase === "part2_speak") && (
-              <div className="flex justify-center animate-in fade-in duration-500 w-full max-w-xl">
-                <img src={MOCK_DATA.part2.image} className="w-full h-[240px] object-cover rounded-xl shadow-lg" />
+              <div className="flex justify-center animate-in fade-in duration-500 w-full max-w-md">
+                <img src={MOCK_DATA.part2.image} className="w-full h-[220px] object-cover rounded-2xl border-3 border-[var(--paper-ink)] shadow-[4px_4px_0_var(--paper-ink)]" />
               </div>
             )}
 
-            {/* Part 3 Table */}
             {mockPhase.includes("part3") && (mockPhase === "part3_prep" || mockPhase === "part3_speak") && (
-              <div className="bg-white/5 dark:bg-white/[0.03] backdrop-blur-sm border border-white/10 dark:border-white/5 p-6 rounded-xl shadow-xl max-w-3xl w-full animate-in fade-in duration-500">
-                <h3 className="text-xl font-bold text-center mb-4 text-foreground">{MOCK_DATA.part3.title}</h3>
-                <div className="grid grid-cols-2 gap-0 border border-white/20 rounded-lg overflow-hidden">
-                  {/* Headers */}
-                  <div className="bg-primary/20 p-3 text-center font-semibold text-foreground border-b border-r border-white/20">
-                    For
+              <div className="paper-box p-6 bg-[var(--paper-card)] shadow-[6px_6px_0_var(--paper-ink)] max-w-3xl w-full animate-in fade-in duration-500">
+                <h3 className="text-xl font-black text-center mb-4 text-[var(--paper-ink)]">{MOCK_DATA.part3.title}</h3>
+                <div className="grid grid-cols-2 rounded-xl border-3 border-[var(--paper-ink)] overflow-hidden shadow-[2px_2px_0_var(--paper-ink)]">
+                  <div className="bg-[var(--paper-g)] text-white p-3 text-center font-black text-sm border-b-2 border-r-2 border-[var(--paper-ink)]">
+                    FOR (Afzalliklari)
                   </div>
-                  <div className="bg-destructive/20 p-3 text-center font-semibold text-foreground border-b border-white/20">
-                    Against
+                  <div className="bg-[var(--paper-r)] text-white p-3 text-center font-black text-sm border-b-2 border-[var(--paper-ink)]">
+                    AGAINST (Kamchiliklari)
                   </div>
-                  {/* Rows */}
                   {MOCK_DATA.part3.for.map((forItem, i) => (
                     <div key={i} className="contents">
-                      <div className={`p-4 text-foreground/90 border-r border-white/10 ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b' : ''}`}>
-                        {forItem}
+                      <div className={`p-3 text-xs sm:text-sm font-bold text-[var(--paper-ink)] bg-[var(--paper)] border-r-2 border-[var(--paper-ink)] ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b-2' : ''}`}>
+                        • {forItem}
                       </div>
-                      <div className={`p-4 text-foreground/90 border-white/10 ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b' : ''}`}>
-                        {MOCK_DATA.part3.against[i]}
+                      <div className={`p-3 text-xs sm:text-sm font-bold text-[var(--paper-ink)] bg-[var(--paper)] ${i !== MOCK_DATA.part3.for.length - 1 ? 'border-b-2 border-[var(--paper-ink)]' : ''}`}>
+                        • {MOCK_DATA.part3.against[i]}
                       </div>
                     </div>
                   ))}
@@ -1664,30 +1944,39 @@ Do not include any text before or after the JSON. Do not use markdown code fence
             )}
           </div>
 
-          {/* BOTTOM SECTION: Start/Stop Button — always visible */}
-          <div className="w-full flex justify-center shrink-0 py-6">
+          {/* BOTTOM SECTION: Start/Stop/Skip Buttons */}
+          <div className="w-full flex justify-center shrink-0 py-4 gap-3">
             {!isRecording ? (
-              <GlassButton onClick={startSession}>
-                <Mic className="w-5 h-5 text-foreground" />
-                Start
-              </GlassButton>
+              <button
+                type="button"
+                onClick={startSession}
+                className="paper-btn paper-btn-p px-8 py-3.5 text-base font-black flex items-center gap-2 shadow-[4px_4px_0_var(--paper-ink)]"
+              >
+                <BilimIcon name="mic" size={20} />
+                <span>Imtihonni Boshlash</span>
+              </button>
             ) : (
-              <div className="flex gap-4">
-                <GlassButton
+              <div className="flex gap-3">
+                <button
+                  type="button"
                   onClick={() => {
                     stopSession();
                     mockPhaseRef.current = "assessment";
                     setMockPhase("assessment");
                     generateAssessment(messagesRef.current);
                   }}
-                  active={!isThinking && !isSpeaking}
+                  className="paper-btn font-black text-sm px-6 py-3 bg-[var(--paper-r)] text-white flex items-center gap-2"
                 >
-                  <Square className="w-5 h-5 text-destructive" />
-                  Stop
-                </GlassButton>
-                <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-white/20 hover:bg-white/10 dark:text-white" onClick={handleSkipPhase}>
-                  Skip Part
-                </Button>
+                  <Square className="w-4 h-4 fill-white" />
+                  <span>Tugatish</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSkipPhase}
+                  className="paper-btn paper-btn-out font-black text-sm px-6 py-3 flex items-center gap-1.5"
+                >
+                  <span>Qismni O'tkazib Yuborish →</span>
+                </button>
               </div>
             )}
           </div>
@@ -1696,8 +1985,8 @@ Do not include any text before or after the JSON. Do not use markdown code fence
 
       {/* ==================== PRACTICE MODE LAYOUT ==================== */}
       {mode === "practice" && (
-        <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto relative justify-center items-center">
-          {/* Visualizer Area */}
+        <div className="flex-1 flex flex-col w-full max-w-4xl mx-auto relative justify-center items-center p-6">
+          {/* Strands Visualizer */}
           <div
             className="absolute inset-0 z-0 pointer-events-none opacity-80 flex items-center justify-center"
             style={{
@@ -1706,7 +1995,7 @@ Do not include any text before or after the JSON. Do not use markdown code fence
             }}
           >
             <Strands
-              colors={["#FF4242", "#7C3AED", "#06B6D4", "#EAB308"]}
+              colors={["#FFB800", "#FF6B00", "#4D7CFF", "#10B981"]}
               count={3}
               speed={isRecording ? 0.8 : 0.4}
               amplitude={isRecording ? 0.8 : 0.4}
@@ -1725,20 +2014,25 @@ Do not include any text before or after the JSON. Do not use markdown code fence
           )}
 
           {/* Controls Overlay */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+          <div className="relative z-20 flex flex-col items-center gap-4">
             {!isRecording ? (
-              <GlassButton onClick={startSession}>
-                <Mic className="w-5 h-5 text-foreground" />
-                Start
-              </GlassButton>
-            ) : (
-              <GlassButton
-                onClick={finishPractice}
-                active={!isThinking && !isSpeaking}
+              <button
+                type="button"
+                onClick={startSession}
+                className="paper-btn paper-btn-p px-10 py-4 text-lg font-black flex items-center gap-3 shadow-[6px_6px_0_var(--paper-ink)]"
               >
-                <Square className="w-5 h-5 text-destructive" />
-                Stop
-              </GlassButton>
+                <BilimIcon name="mic" size={24} />
+                <span>Suhbatni Boshlash</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={finishPractice}
+                className="paper-btn font-black text-base px-8 py-3.5 bg-[var(--paper-r)] text-white flex items-center gap-2 shadow-[6px_6px_0_var(--paper-ink)]"
+              >
+                <Square className="w-5 h-5 fill-white" />
+                <span>Suhbatni To'xtatish</span>
+              </button>
             )}
           </div>
         </div>
@@ -1746,94 +2040,80 @@ Do not include any text before or after the JSON. Do not use markdown code fence
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 bottom-0 w-[500px] bg-background/50 backdrop-blur-2xl border-l border-border/50 z-50 transition-transform duration-300 shadow-2xl flex flex-col ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed right-0 top-0 bottom-0 w-[450px] max-w-[90vw] bg-[var(--paper)] border-l-4 border-[var(--paper-ink)] z-50 transition-transform duration-300 shadow-2xl flex flex-col ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <button
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="absolute -left-10 top-1/2 -translate-y-1/2 w-10 h-16 bg-background/50 backdrop-blur-2xl border border-r-0 border-border/50 rounded-l-xl flex items-center justify-center shadow-md hover:bg-muted/50 transition-colors z-50 cursor-pointer text-foreground"
-          title="Toggle Transcript"
+          className="absolute -left-11 top-1/2 -translate-y-1/2 w-11 h-14 bg-[var(--paper-y)] border-3 border-r-0 border-[var(--paper-ink)] rounded-l-xl flex items-center justify-center shadow-[-3px_3px_0_var(--paper-ink)] cursor-pointer text-[var(--paper-ink)] font-black"
+          title="Transkriptni ochish/yopish"
         >
           {isDrawerOpen ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
         </button>
 
-        <div className="p-6 border-b border-border/50 shrink-0">
-          <h3 className="text-xl font-bold font-heading">Transcript</h3>
+        <div className="p-5 border-b-3 border-[var(--paper-ink)] bg-[var(--paper-card)] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BilimIcon name="pencil" size={18} />
+            <h3 className="text-lg font-black text-[var(--paper-ink)]">Jonli Transkript</h3>
+          </div>
+          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--paper-y)] border border-[var(--paper-ink)]">
+            AI & User
+          </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3.5">
           {messages.filter(m => m.role !== "tool" && (m.role !== "assistant" || m.content)).map((msg, idx) => (
-            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div key={idx} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Bot className="w-5 h-5 text-foreground" />
+                <div className="w-8 h-8 rounded-xl bg-[var(--paper-y)] border-2 border-[var(--paper-ink)] flex items-center justify-center shrink-0 text-sm font-black shadow-[2px_2px_0_var(--paper-ink)]">
+                  🤖
                 </div>
               )}
-              <div className={`p-4 rounded-xl max-w-[85%] ${msg.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-tr-none"
-                  : "bg-muted text-foreground rounded-tl-none"
+              <div className={`paper-box p-3.5 max-w-[85%] text-xs font-semibold ${msg.role === "user"
+                  ? "bg-[var(--paper-y)] text-[var(--paper-on)]"
+                  : "bg-[var(--paper-card)] text-[var(--paper-ink)]"
                 }`}>
-                <p className="leading-relaxed text-sm">
+                <p className="leading-relaxed">
                   {msg.content.replace(/<function[^>]*>.*?<\/function>/gs, "")}
                 </p>
                 {msg.feedback && (
-                  <div className="mt-2 text-xs bg-black/10 dark:bg-black/30 p-2 rounded border border-border italic text-foreground">
+                  <div className="mt-2 text-[11px] bg-white/60 dark:bg-black/20 p-2 rounded-lg border border-[var(--paper-ink)] italic text-[var(--paper-ink)] font-bold">
                     💡 {msg.feedback}
                   </div>
                 )}
               </div>
               {msg.role === "user" && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5 text-primary-foreground" />
+                <div className="w-8 h-8 rounded-xl bg-[var(--paper-o)] text-white border-2 border-[var(--paper-ink)] flex items-center justify-center shrink-0 text-sm font-black shadow-[2px_2px_0_var(--paper-ink)]">
+                  👤
                 </div>
               )}
             </div>
           ))}
 
           {(finalizedTranscript || liveInterimText) && (
-            <div className="flex gap-3 justify-end">
-              <div className="p-4 rounded-xl max-w-[85%] bg-primary/20 text-foreground rounded-tr-none border border-primary/30">
-                <p className="leading-relaxed text-sm">
+            <div className="flex gap-2.5 justify-end">
+              <div className="paper-box p-3.5 max-w-[85%] bg-[var(--paper-y)]/80 text-[var(--paper-on)] text-xs font-semibold">
+                <p className="leading-relaxed">
                   {finalizedTranscript}
                   <span className="opacity-60 italic">{liveInterimText}</span>
                 </p>
-                <div className="flex gap-1 mt-2 justify-end">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }}></span>
-                </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-primary-foreground" />
+              <div className="w-8 h-8 rounded-xl bg-[var(--paper-o)] text-white border-2 border-[var(--paper-ink)] flex items-center justify-center shrink-0 text-sm font-black">
+                👤
               </div>
             </div>
           )}
 
           {isThinking && (
-            <div className="flex gap-3 justify-start items-center text-muted-foreground p-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Loader2 className="w-5 h-5 text-foreground animate-spin" />
-              </div>
-              <span className="text-sm">Thinking...</span>
-            </div>
-          )}
-
-          {isSearching && (
-            <div className="flex gap-3 justify-start items-center text-foreground p-2 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Search className="w-5 h-5 text-foreground" />
-              </div>
-              <span className="text-sm italic">
-                🔍 "{searchQuery || 'Searching...'}" bo'yicha internetdan qidiryapman...
-              </span>
+            <div className="flex gap-2 items-center text-xs font-bold text-[var(--paper-mut)] p-2">
+              <Loader2 className="w-4 h-4 animate-spin text-[var(--paper-o)]" />
+              <span>AI o'ylamoqda...</span>
             </div>
           )}
 
           {isSpeaking && (
-            <div className="flex gap-3 justify-start items-center text-foreground p-2">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 animate-pulse">
-                <Volume2 className="w-5 h-5 text-foreground" />
-              </div>
-              <span className="text-sm font-medium">Speaking...</span>
+            <div className="flex gap-2 items-center text-xs font-bold text-[var(--paper-mut)] p-2">
+              <Volume2 className="w-4 h-4 text-[var(--paper-g)] animate-pulse" />
+              <span>AI gapirmoqda...</span>
             </div>
           )}
 

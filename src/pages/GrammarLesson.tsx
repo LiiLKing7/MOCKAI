@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, CornerDownRight, Loader2, Mic, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Check, Loader2, Mic, RotateCcw } from "lucide-react";
 import { PageProps } from "../App";
+import { BilimIcon } from "@/components/ui/bilim-icon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TextSpan = {
@@ -43,16 +43,16 @@ type LessonState =
 
 // ─── Grammar Topics ───────────────────────────────────────────────────────────
 const GRAMMAR_TOPICS = [
-  { id: "to-be", label: "To Be (am/is/are)" },
-  { id: "present-simple", label: "Present Simple" },
-  { id: "present-continuous", label: "Present Continuous" },
-  { id: "past-simple", label: "Past Simple" },
-  { id: "past-continuous", label: "Past Continuous" },
-  { id: "present-perfect", label: "Present Perfect" },
-  { id: "future-will", label: "Future (will)" },
-  { id: "articles", label: "Articles (a/an/the)" },
-  { id: "conditionals", label: "Conditionals (0, 1st, 2nd)" },
-  { id: "passive-voice", label: "Passive Voice" },
+  { id: "to-be", label: "To Be (am/is/are)", level: "A1" },
+  { id: "present-simple", label: "Present Simple", level: "A1-A2" },
+  { id: "present-continuous", label: "Present Continuous", level: "A2" },
+  { id: "past-simple", label: "Past Simple", level: "A2" },
+  { id: "past-continuous", label: "Past Continuous", level: "B1" },
+  { id: "present-perfect", label: "Present Perfect", level: "B1" },
+  { id: "future-will", label: "Future (will / going to)", level: "A2-B1" },
+  { id: "articles", label: "Articles (a/an/the)", level: "A1-B1" },
+  { id: "conditionals", label: "Conditionals (0, 1st, 2nd)", level: "B1-B2" },
+  { id: "passive-voice", label: "Passive Voice", level: "B2" },
 ];
 
 const VOICE_MODELS = [
@@ -67,19 +67,19 @@ const VOICE_MODELS = [
 function ParagraphBlock({ spans, baseWordIndex, activeWordIndex }: { spans: TextSpan[]; baseWordIndex: number; activeWordIndex: number }) {
   let wordOffset = 0;
   return (
-    <p className="text-lg leading-relaxed my-2 text-slate-800 dark:text-neutral-100">
+    <p className="text-base sm:text-lg leading-relaxed my-3 font-medium text-[var(--paper-ink)]">
       {spans.map((span, si) => {
         const words = span.text.split(/\s+/).filter(Boolean);
         const spanStart = baseWordIndex + wordOffset;
         const result = (
-          <span key={si} className={`${span.emphasis === 'bold' ? 'font-bold' : ''} ${span.emphasis === 'highlight' ? 'bg-sky-200/60 dark:bg-sky-700/40 rounded px-0.5' : ''}`}>
+          <span key={si} className={`${span.emphasis === 'bold' ? 'font-black' : ''} ${span.emphasis === 'highlight' ? 'bg-[var(--paper-y)] px-1 rounded border border-[var(--paper-ink)] font-bold' : ''}`}>
             {words.map((word, wi) => {
               const absIdx = spanStart + wi;
               const isRevealed = activeWordIndex === -1 || absIdx <= activeWordIndex;
               const isKaraoke = absIdx === activeWordIndex;
               return (
                 <span key={wi}>
-                  <span className={`inline-block transition-all duration-300 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'} ${isKaraoke ? 'bg-amber-200/50 dark:bg-amber-500/30 rounded px-0.5' : ''}`}>
+                  <span className={`inline-block transition-all duration-200 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'} ${isKaraoke ? 'bg-[var(--paper-y)] text-[var(--paper-ink)] font-black scale-105 rounded px-1 border border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]' : ''}`}>
                     {word}
                   </span>
                   {wi < words.length - 1 && ' '}
@@ -98,21 +98,23 @@ function ParagraphBlock({ spans, baseWordIndex, activeWordIndex }: { spans: Text
 
 function HeadingBlock({ content }: { content: string }) {
   return (
-    <h3 className="text-xl font-bold mt-6 mb-2 flex items-center gap-2 text-slate-900 dark:text-neutral-50">
-      <span className="w-1.5 h-6 rounded-full bg-primary inline-block" />
-      {content}
-    </h3>
+    <div className="flex items-center gap-2.5 mt-6 mb-3">
+      <div className="w-3 h-7 bg-[var(--paper-o)] rounded-md border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]" />
+      <h3 className="text-xl sm:text-2xl font-black text-[var(--paper-ink)] tracking-tight">
+        {content}
+      </h3>
+    </div>
   );
 }
 
 function TableBlock({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="my-4 overflow-x-auto">
-      <table className="w-full border-collapse text-base">
+    <div className="my-5 overflow-x-auto rounded-xl border-3 border-[var(--paper-ink)] shadow-[4px_4px_0_var(--paper-ink)] bg-[var(--paper)]">
+      <table className="w-full border-collapse text-sm sm:text-base">
         <thead>
-          <tr>
+          <tr className="bg-[var(--paper-y)] border-b-3 border-[var(--paper-ink)] text-[var(--paper-on)] font-black">
             {headers.map((h, i) => (
-              <th key={i} className="text-left px-4 py-2 border-b-2 border-slate-300 dark:border-neutral-600 text-slate-700 dark:text-neutral-200 font-semibold bg-slate-50/50 dark:bg-neutral-700/30">
+              <th key={i} className="text-left px-4 py-2.5 border-r-2 last:border-r-0 border-[var(--paper-ink)]">
                 {h}
               </th>
             ))}
@@ -120,9 +122,9 @@ function TableBlock({ headers, rows }: { headers: string[]; rows: string[][] }) 
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri} className="border-b border-slate-200 dark:border-neutral-700">
+            <tr key={ri} className="border-b-2 last:border-b-0 border-[var(--paper-ink)] hover:bg-[var(--paper-card)]">
               {row.map((cell, ci) => (
-                <td key={ci} className="px-4 py-2 text-slate-700 dark:text-neutral-200">
+                <td key={ci} className="px-4 py-2.5 border-r-2 last:border-r-0 border-[var(--paper-ink)] text-[var(--paper-ink)] font-semibold">
                   {cell}
                 </td>
               ))}
@@ -136,7 +138,7 @@ function TableBlock({ headers, rows }: { headers: string[]; rows: string[][] }) 
 
 function ExampleBadge({ content }: { content: string }) {
   return (
-    <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-800/30 dark:text-amber-200 text-sm font-medium mr-2 mb-2">
+    <span className="inline-block px-3 py-1 rounded-lg bg-[var(--paper-p)] text-white text-xs sm:text-sm font-black border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)] mr-2 mb-2">
       {content}
     </span>
   );
@@ -144,9 +146,9 @@ function ExampleBadge({ content }: { content: string }) {
 
 function IconNote({ icon, content }: { icon: string; content: string }) {
   return (
-    <div className="flex items-start gap-2 my-2 pl-2">
-      <span className="text-lg shrink-0">{icon}</span>
-      <span className="text-sm text-slate-600 dark:text-neutral-300 italic">{content}</span>
+    <div className="flex items-start gap-3 my-3 p-3.5 rounded-xl bg-[var(--paper-card)] border-2 border-[var(--paper-ink)] shadow-[3px_3px_0_var(--paper-ink)]">
+      <span className="text-xl shrink-0">{icon}</span>
+      <span className="text-xs sm:text-sm font-bold text-[var(--paper-ink)] leading-snug">{content}</span>
     </div>
   );
 }
@@ -576,71 +578,128 @@ IMPORTANT RULES:
 
   // ─── UI ───────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-50">
+    <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+      {/* Top Header - MockAi Style */}
+      <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => { handleStop(); onNavigate("dashboard"); }}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="font-bold text-lg text-foreground">AI Grammar Teacher</h1>
-            {isActive && (
-              <p className="text-xs text-muted-foreground">{statusText}</p>
-            )}
+          <button
+            type="button"
+            onClick={() => { handleStop(); onNavigate("dashboard"); }}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            title="Dashboardga qaytish"
+          >
+            ←
+          </button>
+          
+          <div
+            onClick={() => { handleStop(); onNavigate("dashboard"); }}
+            className="flex items-center gap-2 cursor-pointer select-none group"
+          >
+            <i className="paper-logo-mark">✦</i>
+            <div className="flex flex-col">
+              <span className="font-black text-lg tracking-tight text-[var(--paper-ink)] group-hover:text-[var(--paper-o)] transition-colors">
+                bilim<span className="text-[var(--paper-o)]">box</span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--paper-mut)] -mt-1">
+                Grammar Teacher
+              </span>
+            </div>
           </div>
         </div>
-        {isActive && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {currentStepIndex + 1} / {steps.length}
-            </span>
-            <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
-                style={{ width: `${((currentStepIndex) / Math.max(steps.length - 1, 1)) * 100}%` }}
-              />
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          {isActive && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-[var(--paper-y)] text-[var(--paper-on)] border-2 border-[var(--paper-ink)]">
+                {currentStepIndex + 1} / {steps.length}
+              </span>
+
+              <div className="w-20 sm:w-28 h-2.5 bg-[var(--paper-card)] border-2 border-[var(--paper-ink)] rounded-full overflow-hidden p-0.5">
+                <div
+                  className="h-full bg-[var(--paper-o)] rounded-full transition-all duration-300"
+                  style={{ width: `${((currentStepIndex + 1) / Math.max(steps.length, 1)) * 100}%` }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRepeat}
+                className="paper-btn paper-btn-out paper-btn-sm font-black flex items-center gap-1.5 text-xs"
+                title="Qaytadan eshitish"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Takror</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStop}
+                className="paper-btn paper-btn-sm font-black text-xs text-white bg-[var(--paper-r)]"
+              >
+                To'xtatish
+              </button>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleRepeat} title="Takrorlab bering" className="gap-1.5">
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">Takror</span>
-            </Button>
-            <Button variant="destructive" size="sm" onClick={handleStop}>To'xtat</Button>
-          </div>
-        )}
+          )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+            title="Rejimni almashtirish"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+        </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 max-w-4xl w-full mx-auto">
         {/* Idle / Topic Selector */}
         {lessonState === "idle" && (
-          <div className="max-w-lg w-full space-y-6 text-center">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Grammatika Darsi</h2>
-              <p className="text-muted-foreground">Mavzuni tanlang va AI o'qituvchingiz doska yozib tushuntiradi</p>
+          <div className="max-w-2xl w-full space-y-6 my-auto py-6">
+            <div className="paper-box p-8 bg-[var(--paper-y)] text-[var(--paper-on)] text-center relative overflow-hidden">
+              <span className="inline-block px-3 py-1 rounded-full bg-white/90 text-[var(--paper-ink)] text-xs font-black uppercase tracking-wider mb-3 border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]">
+                ✦ Interaktiv AI O'qituvchi
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black mb-2">Grammatika Darsi</h2>
+              <p className="text-sm font-bold opacity-85 max-w-lg mx-auto">
+                O'rganmoqchi bo'lgan mavzuni tanlang. AI o'qituvchi doskada tushuntirib, ovoz orqali jonli savol-javob qiladi!
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {GRAMMAR_TOPICS.map(topic => (
-                <button
-                  key={topic.id}
-                  onClick={() => setSelectedTopic(topic.id)}
-                  className={`p-3 rounded-xl border text-sm font-medium text-left transition-all
-                    ${selectedTopic === topic.id
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-card text-foreground hover:border-primary/40"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {GRAMMAR_TOPICS.map((topic) => {
+                const isSelected = selectedTopic === topic.id;
+                return (
+                  <div
+                    key={topic.id}
+                    onClick={() => setSelectedTopic(topic.id)}
+                    className={`paper-box p-4 cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "bg-[var(--paper-y)] translate-x-1 translate-y-1 shadow-[2px_2px_0_var(--paper-ink)]"
+                        : "bg-[var(--paper-card)] hover:translate-x-0.5 hover:-translate-y-0.5"
                     }`}
-                >
-                  {topic.label}
-                </button>
-              ))}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full border-2 border-[var(--paper-ink)] ${isSelected ? "bg-[var(--paper-o)]" : "bg-transparent"}`} />
+                      <span className="font-black text-sm text-[var(--paper-ink)]">{topic.label}</span>
+                    </div>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[var(--paper)] text-[var(--paper-ink)] border border-[var(--paper-ink)]">
+                      {topic.level}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="flex items-center gap-3 justify-center">
-              <span className="text-sm text-muted-foreground">Ovoz:</span>
+            <div className="paper-box p-4 bg-[var(--paper-card)] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎙️</span>
+                <span className="text-xs font-black uppercase tracking-wider text-[var(--paper-mut)]">O'qituvchi Ovozi:</span>
+              </div>
               <select
                 value={selectedVoice}
                 onChange={e => setSelectedVoice(e.target.value)}
-                className="text-sm rounded-lg border border-border bg-card px-3 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="bg-[var(--paper)] text-xs font-black border-2 border-[var(--paper-ink)] rounded-xl px-3 py-2 text-[var(--paper-ink)] focus:outline-none shadow-[2px_2px_0_var(--paper-ink)]"
               >
                 {VOICE_MODELS.map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
@@ -649,36 +708,42 @@ IMPORTANT RULES:
             </div>
 
             {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-2 border border-destructive/20">
+              <div className="paper-box p-4 bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-2 border-red-500 font-bold text-sm">
                 {error}
-              </p>
+              </div>
             )}
 
-            <Button size="lg" className="w-full h-12 text-base" onClick={startLesson}>
-              Darsni boshlash
-            </Button>
+            <button 
+              type="button"
+              onClick={startLesson}
+              className="paper-btn paper-btn-p w-full py-4 text-base font-black flex items-center justify-center gap-2 shadow-[4px_4px_0_var(--paper-ink)]"
+            >
+              <BilimIcon name="pencil" size={20} />
+              <span>Darsni Boshlash</span>
+            </button>
           </div>
         )}
 
         {/* Generating Plan */}
         {lessonState === "generating-plan" && (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            </div>
-            <p className="text-lg font-medium text-foreground">Dars rejasi tayyorlanmoqda...</p>
-            <p className="text-sm text-muted-foreground">Bu bir necha soniya oladi</p>
+          <div className="paper-box p-12 max-w-md w-full bg-[var(--paper-card)] text-center space-y-4 my-auto">
+            <img src="/logo.svg" alt="MockAi" className="w-16 h-16 animate-bounce mx-auto" />
+            <h3 className="text-2xl font-black text-[var(--paper-ink)]">Dars rejasi tuzilmoqda...</h3>
+            <p className="text-xs font-bold text-[var(--paper-mut)] leading-relaxed">
+              AI o'qituvchi tanlangan mavzu bo'yicha interaktiv doska qadamlarini tayyorlayapti. Bir necha soniya kuting...
+            </p>
+            <div className="w-16 h-16 rounded-full border-4 border-[var(--paper-ink)] border-t-[var(--paper-o)] animate-spin mx-auto mt-4" />
           </div>
         )}
 
         {/* Active Lesson — Whiteboard */}
         {(lessonState === "playing" || lessonState === "paused-for-question" || lessonState === "generating-answer" || lessonState === "answering") && currentStep && (
-          <div className="w-full max-w-3xl space-y-4">
+          <div className="w-full max-w-3xl space-y-4 my-auto py-4">
             {/* AI Status Indicator */}
             {(lessonState === "generating-answer" || lessonState === "answering") && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
-                <span className="text-sm text-amber-700 dark:text-amber-400">
+              <div className="paper-box p-3 bg-[var(--paper-y)] text-[var(--paper-on)] flex items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-xs font-black uppercase tracking-wider">
                   {lessonState === "generating-answer" ? "AI javob tayyorlamoqda..." : "AI javob bermoqda..."}
                 </span>
               </div>
@@ -686,18 +751,21 @@ IMPORTANT RULES:
 
             {/* Live Transcript */}
             {liveTranscript && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <Mic className="w-4 h-4 text-blue-500 animate-pulse" />
-                <span className="text-sm text-blue-700 dark:text-blue-300 italic">"{liveTranscript}"</span>
+              <div className="paper-box p-3.5 bg-[var(--paper-b)] text-white flex items-center gap-3 shadow-[3px_3px_0_var(--paper-ink)]">
+                <Mic className="w-5 h-5 animate-pulse" />
+                <span className="text-sm font-black italic">"{liveTranscript}"</span>
               </div>
             )}
 
-            {/* Whiteboard */}
-            <div className="bg-[#FDFDF9] dark:bg-neutral-800 rounded-[2rem] shadow-2xl overflow-hidden mb-6 mx-auto w-full relative min-h-[70vh] flex flex-col border border-border/20">
+            {/* Whiteboard Canvas */}
+            <div className="paper-box bg-[#FFFDF7] dark:bg-[#1a1b1e] border-4 border-[var(--paper-ink)] shadow-[8px_8px_0_var(--paper-ink)] overflow-hidden relative min-h-[60vh] flex flex-col">
+              {/* Tape Graphic Top */}
+              <div className="w-28 h-6 bg-amber-200/90 dark:bg-amber-900/40 border-2 border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)] mx-auto -mt-3 rotate-[-1deg] rounded-sm z-10" />
+
               {/* Board content */}
-              <div className="p-8 sm:p-14 font-sans text-slate-800 dark:text-neutral-100 flex-1 flex flex-col justify-end">
+              <div className="p-6 sm:p-10 text-[var(--paper-ink)] flex-1 flex flex-col justify-end">
                 {/* Auto-scroll container */}
-                <div className="overflow-y-auto pr-4 scroll-smooth max-h-full" ref={boardScrollRef}>
+                <div className="overflow-y-auto pr-2 scroll-smooth max-h-[55vh]" ref={boardScrollRef}>
                   {steps.slice(0, currentStepIndex + 1).map((step, idx) => {
                     const isCurrent = idx === currentStepIndex;
                     return (
@@ -714,28 +782,44 @@ IMPORTANT RULES:
 
             {/* Hint */}
             {lessonState === "playing" && (
-              <p className="text-center text-xs text-muted-foreground">
-                💬 Savol bor bo'lsa, istalgan vaqt gapiring — AI eshitib turadi
-              </p>
+              <div className="text-center">
+                <span className="inline-block px-4 py-1.5 rounded-full bg-[var(--paper-card)] border-2 border-[var(--paper-ink)] text-xs font-bold text-[var(--paper-mut)] shadow-[2px_2px_0_var(--paper-ink)]">
+                  💬 Savolingiz bo'lsa, istalgan vaqtda gapiring — AI eshitib turadi
+                </span>
+              </div>
             )}
           </div>
         )}
 
         {/* Done */}
         {lessonState === "done" && (
-          <div className="max-w-md text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-              <Check className="w-8 h-8 text-emerald-500" />
-            </div>
+          <div className="paper-box p-8 sm:p-12 max-w-md w-full bg-[var(--paper-card)] text-center space-y-6 my-auto">
+            <div className="text-6xl animate-bounce">🎉</div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Dars tugadi!</h2>
-              <p className="text-muted-foreground">
-                {GRAMMAR_TOPICS.find(t => t.id === selectedTopic)?.label} mavzusini muvaffaqiyatli o'rgandingiz.
+              <span className="inline-block px-3 py-1 rounded-full bg-[var(--paper-g)] text-white text-xs font-black uppercase tracking-wider mb-2 border-2 border-[var(--paper-ink)]">
+                ✦ Muvaffaqiyatli
+              </span>
+              <h2 className="text-3xl font-black text-[var(--paper-ink)]">Dars Yakunlandi!</h2>
+              <p className="text-xs font-bold text-[var(--paper-mut)] mt-2 leading-relaxed">
+                {GRAMMAR_TOPICS.find(t => t.id === selectedTopic)?.label} mavzusidagi darsni muvaffaqiyatli tugatdingiz.
               </p>
             </div>
-            <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={handleStop}>Yangi mavzu</Button>
-              <Button onClick={() => { handleStop(); onNavigate("dashboard"); }}>Dashboard</Button>
+
+            <div className="flex gap-3 justify-center pt-2">
+              <button 
+                type="button"
+                onClick={handleStop}
+                className="paper-btn paper-btn-out font-black text-sm px-5 py-2.5"
+              >
+                Yangi Mavzu
+              </button>
+              <button 
+                type="button"
+                onClick={() => { handleStop(); onNavigate("dashboard"); }}
+                className="paper-btn paper-btn-p font-black text-sm px-5 py-2.5"
+              >
+                Dashboard
+              </button>
             </div>
           </div>
         )}

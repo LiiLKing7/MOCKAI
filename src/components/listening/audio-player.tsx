@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause, RotateCcw, Volume2, VolumeX } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { BilimIcon } from "@/components/ui/bilim-icon";
 
 interface AudioPlayerProps {
   src: string;
@@ -92,42 +91,57 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
   };
 
   return (
-    <div className="bg-card border rounded-xl p-4 flex flex-col gap-4 shadow-sm">
+    <div className="paper-box p-5 bg-[var(--paper-card)] flex flex-col gap-4 shadow-[5px_5px_0_var(--paper-ink)]">
       <audio ref={audioRef} src={src} preload="metadata" />
-      
-      <div className="flex items-center justify-between">
+
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button 
-            variant="default" 
-            size="icon" 
-            className="w-12 h-12 rounded-full shadow-md"
+          <button
+            type="button"
             onClick={togglePlay}
+            className="paper-btn paper-btn-yellow w-12 h-12 p-0 rounded-2xl flex items-center justify-center shadow-[3px_3px_0_var(--paper-ink)] cursor-pointer"
+            title={isPlaying ? "To'xtatish" : "Tinglash"}
           >
-            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-          </Button>
-          <Button variant="outline" size="icon" onClick={restart} className="w-10 h-10 rounded-full">
-            <RotateCcw className="w-4 h-4 text-muted-foreground" />
-          </Button>
+            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={restart}
+            className="paper-btn paper-btn-out w-10 h-10 p-0 rounded-xl flex items-center justify-center shadow-[2px_2px_0_var(--paper-ink)] cursor-pointer"
+            title="Qayta boshlash"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
         </div>
-        
-        <div className="text-sm font-medium tabular-nums text-foreground">
+
+        <div className="paper-badge paper-badge-paper font-mono font-black text-sm px-3 py-1">
           {formatTime(currentTime)} / {formatTime(duration)}
         </div>
-        
-        <Button variant="ghost" size="icon" onClick={toggleMute}>
-          {isMuted ? <VolumeX className="w-5 h-5 text-muted-foreground" /> : <Volume2 className="w-5 h-5 text-primary" />}
-        </Button>
+
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="paper-btn paper-btn-out w-10 h-10 p-0 rounded-xl flex items-center justify-center shadow-[2px_2px_0_var(--paper-ink)] cursor-pointer"
+          title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
+        >
+          {isMuted ? <VolumeX className="w-5 h-5 text-rose-600" /> : <Volume2 className="w-5 h-5" />}
+        </button>
       </div>
-      
-      <div className="relative w-full h-2 bg-secondary rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
-        if (audioRef.current && duration) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const percent = (e.clientX - rect.left) / rect.width;
-          audioRef.current.currentTime = percent * duration;
-        }
-      }}>
-        <div 
-          className="absolute top-0 left-0 h-full bg-primary transition-all duration-100"
+
+      {/* Chunky Progress Bar */}
+      <div
+        className="paper-progress-bar w-full h-4 cursor-pointer"
+        onClick={(e) => {
+          if (audioRef.current && duration) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            audioRef.current.currentTime = percent * duration;
+          }
+        }}
+      >
+        <div
+          className="paper-progress-fill"
           style={{ width: `${progress}%` }}
         />
       </div>

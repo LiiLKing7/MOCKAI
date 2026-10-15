@@ -1,0 +1,140 @@
+/* Paper-cutout avatars: uneven ink edges, layered shadows and deliberately different personalities. */
+.paper-bot {
+  --bot-size: 64px;
+  --bot-color: #b6ef88;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--bot-size);
+  height: var(--bot-size);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #1a1a1a;
+  cursor: pointer;
+  vertical-align: middle;
+  isolation: isolate;
+  overflow: visible;
+  transform-origin: 50% 78%;
+  animation: pb-clover-idle 3.8s ease-in-out var(--bot-delay, 0s) infinite;
+  animation-play-state: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.paper-bot:focus { outline: none; }
+.paper-bot:focus-visible { outline: 2px dashed #1a1a1a; outline-offset: 5px; border-radius: 16px; }
+.pb-svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(1px 2px 0 #1a1a1a12); }
+.pb-art { transform-box: fill-box; transform-origin: 50% 80%; }
+.pb-shadow { fill: #1a1a1a; stroke: #1a1a1a; stroke-width: 4.8; stroke-linejoin: round; opacity: .2; }
+.pb-body { fill: var(--bot-color); stroke: #1a1a1a; stroke-width: 4.2; stroke-linejoin: round; stroke-linecap: round; }
+.pb-face-wrap { pointer-events: none; }
+.pb-face { transform-box: fill-box; transform-origin: center; }
+.pb-eye { fill: #1a1a1a; stroke: #1a1a1a; stroke-width: 1.1; }
+.pb-glint { fill: #fffef8; stroke: none; }
+.pb-mouth { fill: none; stroke: #1a1a1a; stroke-width: 3.2; stroke-linecap: round; }
+.pb-paper-fleck { fill: none; stroke: #fffef8; stroke-width: 1.8; stroke-linecap: round; opacity: .78; pointer-events: none; }
+.pb-zzz { fill: #1a1a1a; font: 800 10px ui-rounded, system-ui, sans-serif; stroke: none; animation: pb-zzz 2.2s ease-in-out infinite; }
+.pb-eyes-closed .pb-eye { fill: none; stroke: #1a1a1a; stroke-width: 2.8; stroke-linecap: round; transform: scaleY(.12); transform-box: fill-box; transform-origin: center; }
+.pb-eyes-closed .pb-glint { opacity: 0; }
+.pb-eye--mech { fill: #82eaff; stroke-width: 2; }
+.paper-bot--ghost .pb-body { fill: #fffef8; }
+.paper-bot--mech .pb-body { stroke-width: 5; }
+.paper-bot--pill .pb-body { stroke-linecap: round; }
+.paper-bot--working { animation-duration: .76s; animation-timing-function: steps(2, end); }
+.paper-bot--working.paper-bot--droid,
+.paper-bot--working.paper-bot--mech { animation-timing-function: steps(3, end); }
+.paper-bot--sleeping { animation-duration: 4.4s; animation-timing-function: ease-in-out; }
+.paper-bot--sleeping .pb-zzz { animation-duration: 2.8s; }
+
+/* Individual idle loops — one clear motion language per silhouette. */
+.paper-bot--clover { animation-name: pb-clover-idle; }
+.paper-bot--flower { animation-name: pb-flower-idle; }
+.paper-bot--triangle { animation-name: pb-triangle-idle; }
+.paper-bot--square { animation-name: pb-square-idle; }
+.paper-bot--blob { animation-name: pb-blob-idle; }
+.paper-bot--ghost { animation-name: pb-ghost-idle; }
+.paper-bot--circle { animation-name: pb-circle-idle; }
+.paper-bot--drop { animation-name: pb-drop-idle; }
+.paper-bot--star { animation-name: pb-star-idle; }
+.paper-bot--droid { animation-name: pb-droid-idle; }
+.paper-bot--mech { animation-name: pb-mech-idle; }
+.paper-bot--alien { animation-name: pb-alien-idle; }
+.paper-bot--hexagon { animation-name: pb-hexagon-idle; }
+.paper-bot--cat { animation-name: pb-cat-idle; }
+.paper-bot--cloud { animation-name: pb-cloud-idle; }
+.paper-bot--pill { animation-name: pb-pill-idle; }
+.paper-bot--pebble { animation-name: pb-pebble-idle; }
+.paper-bot--puddle { animation-name: pb-puddle-idle; }
+
+/* Hover is a one-shot paper squeeze, not a continuous wobble. Every bot gets its own reaction. */
+@media (hover: hover) and (pointer: fine) {
+  .paper-bot:hover { z-index: 2; }
+  .paper-bot--clover:hover { animation: pb-clover-press .62s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--flower:hover { animation: pb-flower-press .7s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--triangle:hover { animation: pb-triangle-press .62s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--square:hover { animation: pb-square-press .48s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--blob:hover { animation: pb-blob-press .68s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--ghost:hover { animation: pb-ghost-press .74s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--circle:hover { animation: pb-circle-press .62s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--drop:hover { animation: pb-drop-press .68s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--star:hover { animation: pb-star-press .64s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--droid:hover { animation: pb-droid-press .5s steps(4,end) both; }
+  .paper-bot--mech:hover { animation: pb-mech-press .68s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--alien:hover { animation: pb-alien-press .72s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--hexagon:hover { animation: pb-hexagon-press .6s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--cat:hover { animation: pb-cat-press .62s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--cloud:hover { animation: pb-cloud-press .7s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--pill:hover { animation: pb-pill-press .58s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--pebble:hover { animation: pb-pebble-press .64s cubic-bezier(.2,.8,.25,1) both; }
+  .paper-bot--puddle:hover { animation: pb-puddle-press .72s cubic-bezier(.2,.8,.25,1) both; }
+}
+
+/* Click/tap feedback is a quick squeeze and pop — intentionally no spin. */
+.paper-bot.is-clicked { animation: pb-click-squish .62s cubic-bezier(.2,.8,.25,1) both !important; }
+
+@keyframes pb-clover-idle { 0%,100% { transform: translateY(0) rotate(-2deg) } 45% { transform: translateY(-3px) rotate(2deg) } 70% { transform: translateY(-1px) rotate(0) } }
+@keyframes pb-flower-idle { 0%,100% { transform: rotate(-2deg) scale(1) } 35% { transform: rotate(3deg) scale(1.035,.98) } 65% { transform: rotate(-1deg) scale(.98,1.025) } }
+@keyframes pb-triangle-idle { 0%,100% { transform: translateY(0) rotate(0) } 30% { transform: translateY(-2px) rotate(3deg) } 48% { transform: translateY(1px) rotate(-1deg) } 70% { transform: translateY(-4px) rotate(0) } }
+@keyframes pb-square-idle { 0%,100% { transform: translateY(0) rotate(0) } 18% { transform: translateY(-1px) rotate(-1deg) } 22% { transform: translateY(0) rotate(1deg) } 26% { transform: translateY(-1px) rotate(0) } 62% { transform: translateY(-2px) rotate(0) } }
+@keyframes pb-blob-idle { 0%,100% { transform: scale(1,1) translateY(0) } 28% { transform: scale(1.035,.97) translateY(1px) } 55% { transform: scale(.97,1.04) translateY(-2px) } 78% { transform: scale(1.015,.99) } }
+@keyframes pb-ghost-idle { 0%,100% { transform: translate(0,0) rotate(0) } 30% { transform: translate(1px,-4px) rotate(2deg) } 60% { transform: translate(-1px,-7px) rotate(-2deg) } 80% { transform: translate(0,-3px) rotate(1deg) } }
+@keyframes pb-circle-idle { 0%,100% { transform: scale(1,1) } 35% { transform: scale(1.035,.97) } 60% { transform: scale(.985,1.025) } }
+@keyframes pb-drop-idle { 0%,100% { transform: translateY(0) scale(1,1) } 38% { transform: translateY(-4px) scale(.97,1.04) } 68% { transform: translateY(1px) scale(1.04,.97) } }
+@keyframes pb-star-idle { 0%,100% { transform: rotate(0) scale(1) } 25% { transform: rotate(5deg) scale(1.02) } 50% { transform: rotate(0) scale(1.07) } 75% { transform: rotate(-5deg) scale(1.02) } }
+@keyframes pb-droid-idle { 0%,100% { transform: translateY(0) rotate(0) } 12% { transform: translateY(-1px) rotate(-2deg) } 24% { transform: translateY(0) rotate(2deg) } 36% { transform: translateY(-1px) rotate(-1deg) } 60% { transform: translateY(-2px) rotate(0) } }
+@keyframes pb-mech-idle { 0%,100% { transform: translateY(0) scaleY(1) } 15% { transform: translateY(1px) scaleY(.97) } 24% { transform: translateY(-2px) scaleY(1.025) } 35% { transform: translateY(0) scaleY(1) } 72% { transform: translateY(-1px) } }
+@keyframes pb-alien-idle { 0%,100% { transform: rotate(0) translateY(0) } 32% { transform: rotate(-3deg) translateY(-2px) } 64% { transform: rotate(3deg) translateY(-4px) } }
+@keyframes pb-hexagon-idle { 0%,100% { transform: rotate(0) translateY(0) } 25% { transform: rotate(2deg) translateY(-1px) } 50% { transform: rotate(0) translateY(-3px) } 75% { transform: rotate(-2deg) translateY(-1px) } }
+@keyframes pb-cat-idle { 0%,100% { transform: translateY(0) rotate(0) scale(1,1) } 28% { transform: translateY(-3px) rotate(-2deg) scale(.98,1.02) } 55% { transform: translateY(0) rotate(2deg) scale(1.02,.98) } }
+@keyframes pb-cloud-idle { 0%,100% { transform: translateX(0) translateY(0) } 30% { transform: translateX(2px) translateY(-2px) } 60% { transform: translateX(-2px) translateY(-3px) } }
+@keyframes pb-pill-idle { 0%,100% { transform: rotate(0) translateY(0) } 30% { transform: rotate(2deg) translateY(-1px) } 55% { transform: rotate(-2deg) translateY(0) } 78% { transform: rotate(0) translateY(-2px) } }
+@keyframes pb-pebble-idle { 0%,100% { transform: rotate(0) translateY(0) } 20% { transform: rotate(-1deg) translateY(0) } 42% { transform: rotate(2deg) translateY(-1px) } 70% { transform: rotate(0) translateY(-2px) } }
+@keyframes pb-puddle-idle { 0%,100% { transform: scale(1,1) translateY(0) } 25% { transform: scale(1.04,.96) translateY(1px) } 52% { transform: scale(.98,1.04) translateY(-2px) } 76% { transform: scale(1.02,.99) } }
+
+@keyframes pb-clover-press { 0% { transform: scale(1,1) rotate(0) } 22% { transform: scale(1.17,.77) translateY(4px) rotate(-5deg) } 48% { transform: scale(.9,1.13) translateY(-5px) rotate(3deg) } 68% { transform: scale(1.06,.94) translateY(1px) rotate(-2deg) } 100% { transform: scale(1,1) rotate(0) } }
+@keyframes pb-flower-press { 0% { transform: scale(1) rotate(0) } 25% { transform: scale(.78,.82) rotate(-8deg) } 52% { transform: scale(1.12,1.13) rotate(7deg) } 75% { transform: scale(.97,1.02) rotate(-2deg) } 100% { transform: scale(1) rotate(0) } }
+@keyframes pb-triangle-press { 0% { transform: scale(1) translateY(0) } 24% { transform: scale(1.13,.72) translateY(5px) rotate(4deg) } 53% { transform: scale(.92,1.12) translateY(-7px) rotate(-4deg) } 100% { transform: scale(1) translateY(0) } }
+@keyframes pb-square-press { 0%,100% { transform: scale(1) } 18% { transform: scale(1.1,.8) translateY(4px) } 32% { transform: scale(.96,1.06) translateY(-2px) } 45% { transform: translateX(-3px) scale(1.02,.98) } 58% { transform: translateX(3px) scale(1.02,.98) } 72% { transform: scale(1) } }
+@keyframes pb-blob-press { 0% { transform: scale(1,1) } 18% { transform: scale(1.18,.7) translateY(5px) } 38% { transform: scale(.78,1.18) translateY(-3px) } 58% { transform: scale(1.12,.88) translateY(2px) } 78% { transform: scale(.97,1.04) } 100% { transform: scale(1,1) } }
+@keyframes pb-ghost-press { 0% { transform: translateY(0) scale(1) } 20% { transform: translateY(5px) scale(1.05,.84) } 42% { transform: translateY(-12px) scale(.94,1.12) rotate(4deg) } 65% { transform: translateY(-4px) rotate(-4deg) } 100% { transform: translateY(0) scale(1) rotate(0) } }
+@keyframes pb-circle-press { 0%,100% { transform: scale(1,1) } 24% { transform: scale(1.23,.72) translateY(5px) } 52% { transform: scale(.86,1.15) translateY(-4px) } 75% { transform: scale(1.06,.95) } }
+@keyframes pb-drop-press { 0% { transform: scale(1,1) translateY(0) } 22% { transform: scale(1.18,.73) translateY(5px) } 43% { transform: scale(.78,1.2) translateY(-7px) } 65% { transform: scale(1.07,.94) translateY(1px) } 100% { transform: scale(1,1) translateY(0) } }
+@keyframes pb-star-press { 0% { transform: scale(1) rotate(0) } 24% { transform: scale(.78,.8) rotate(-9deg) translateY(4px) } 50% { transform: scale(1.12,1.12) rotate(12deg) translateY(-3px) } 74% { transform: scale(.96,1.02) rotate(-4deg) } 100% { transform: scale(1) rotate(0) } }
+@keyframes pb-droid-press { 0%,100% { transform: translateY(0) scale(1) rotate(0) } 20% { transform: translateY(3px) scale(1.04,.86) rotate(-3deg) } 40% { transform: translateY(-2px) scale(.97,1.06) rotate(3deg) } 60% { transform: translateY(1px) scale(1.02,.97) rotate(-2deg) } 80% { transform: translateY(0) scale(1) rotate(0) } }
+@keyframes pb-mech-press { 0%,100% { transform: translateY(0) scaleY(1) } 20% { transform: translateY(5px) scaleY(.76) scaleX(1.1) } 36% { transform: translateY(-5px) scaleY(1.14) scaleX(.94) } 54% { transform: translateY(2px) scaleY(.93) scaleX(1.04) } 72% { transform: translateY(-1px) scaleY(1.02) } }
+@keyframes pb-alien-press { 0%,100% { transform: scale(1) rotate(0) } 22% { transform: scale(1.15,.78) rotate(-5deg) translateY(3px) } 45% { transform: scale(.9,1.12) rotate(5deg) translateY(-4px) } 67% { transform: scale(1.04,.97) rotate(-2deg) } }
+@keyframes pb-hexagon-press { 0%,100% { transform: scale(1) rotate(0) } 20% { transform: scale(1.08,.82) rotate(-8deg) translateY(3px) } 46% { transform: scale(.94,1.08) rotate(5deg) translateY(-3px) } 72% { transform: scale(1.02) rotate(-2deg) } }
+@keyframes pb-cat-press { 0%,100% { transform: scale(1,1) translateY(0) rotate(0) } 22% { transform: scale(1.1,.78) translateY(4px) rotate(-4deg) } 44% { transform: scale(.92,1.1) translateY(-5px) rotate(5deg) } 66% { transform: translateY(1px) scale(1.04,.95) rotate(-2deg) } }
+@keyframes pb-cloud-press { 0% { transform: scale(1) translateX(0) } 25% { transform: scale(1.15,.78) translateY(3px) } 48% { transform: scale(.9,1.13) translateX(3px) translateY(-4px) } 68% { transform: scale(1.04,.97) translateX(-2px) } 100% { transform: scale(1) translateX(0) } }
+@keyframes pb-pill-press { 0%,100% { transform: rotate(0) scale(1) } 24% { transform: rotate(-9deg) scale(1.12,.8) translateY(3px) } 50% { transform: rotate(8deg) scale(.94,1.08) translateY(-2px) } 76% { transform: rotate(-2deg) scale(1.02,.98) } }
+@keyframes pb-pebble-press { 0%,100% { transform: scale(1) rotate(0) } 24% { transform: scale(1.12,.8) rotate(-3deg) translateY(4px) } 50% { transform: scale(.94,1.07) rotate(3deg) translateY(-2px) } 72% { transform: scale(1.02,.98) rotate(0) } }
+@keyframes pb-puddle-press { 0% { transform: scale(1,1) translateY(0) } 20% { transform: scale(1.22,.66) translateY(6px) } 42% { transform: scale(.84,1.2) translateY(-5px) } 62% { transform: scale(1.13,.9) translateY(2px) } 82% { transform: scale(.98,1.02) } 100% { transform: scale(1,1) } }
+@keyframes pb-click-squish { 0% { transform: scale(1) } 22% { transform: scale(1.16,.76) translateY(4px) } 53% { transform: scale(.91,1.12) translateY(-5px) rotate(2deg) } 78% { transform: scale(1.04,.97) } 100% { transform: scale(1) } }
+@keyframes pb-zzz { 0%,100% { opacity: 0; transform: translate(0,4px) } 40% { opacity: 1 } 75% { opacity: .8; transform: translate(3px,-4px) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-bot, .paper-bot * { animation: none !important; transition: none !important; }
+  .paper-bot.is-clicked { transform: scale(1.04,.94); }
+}

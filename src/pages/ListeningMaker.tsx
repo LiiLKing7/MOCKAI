@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PageProps } from '../App';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Play, Download, Trash2, ArrowUp, ArrowDown, Settings, Mic, Timer, Copy, X, Clock } from 'lucide-react';
+import { BilimIcon } from '@/components/ui/bilim-icon';
 import { 
   AudioBlock, 
   voices, 
@@ -68,13 +67,13 @@ export default function ListeningMaker({ onNavigate, theme, toggleTheme }: PageP
     
     setError(null);
     try {
-      updateBlock(id, { audioBuffer: undefined }); // clear existing
+      updateBlock(id, { audioBuffer: undefined });
       const arrayBuffer = await fetchDeepgramAudio(block.text, block.voice || voices[0].id, apiKey);
       const audioBuffer = await decodeAudioBuffer(arrayBuffer);
       updateBlock(id, { audioBuffer });
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to generate audio');
+      setError(err.message || 'Audio yaratishda xatolik yuz berdi');
     }
   };
 
@@ -93,11 +92,11 @@ export default function ListeningMaker({ onNavigate, theme, toggleTheme }: PageP
   const handleExportWav = async () => {
     const missingAudio = blocks.some(b => b.type === 'tts' && !b.audioBuffer);
     if (missingAudio) {
-      setError('Please generate audio for all TTS blocks before exporting.');
+      setError('Iltimos, eksport qilishdan oldin barcha matn bloklari uchun audio yarating.');
       return;
     }
     if (blocks.length === 0) {
-      setError('Add some blocks first.');
+      setError('Avval biror audio blok qo\'shing.');
       return;
     }
 
@@ -115,178 +114,307 @@ export default function ListeningMaker({ onNavigate, theme, toggleTheme }: PageP
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to export WAV');
+      setError(err.message || 'WAV eksport qilishda xatolik yuz berdi');
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background z-50 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => onNavigate("dashboard")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-heading font-semibold flex items-center gap-2">
-            <Mic className="w-5 h-5 text-primary" />
-            Listening Maker
-          </h1>
-        </div>
-        <div className="flex items-center gap-4">
+    <div className="reading-paper-container min-h-screen flex flex-col bg-[var(--paper)] text-[var(--paper-ink)]">
+      {/* Top Header - MockAi Style */}
+      <header className="sticky top-0 z-40 bg-[var(--paper)] border-b-3 border-[var(--paper-ink)] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onNavigate("dashboard")}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0 flex items-center justify-center font-black"
+            title="Dashboardga qaytish"
+          >
+            ←
+          </button>
 
-          <Button variant="default" onClick={handleExportWav} disabled={isProcessing}>
-            {isProcessing ? 'Processing...' : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Export WAV
-              </>
-            )}
-          </Button>
+          <div
+            onClick={() => onNavigate("dashboard")}
+            className="flex items-center gap-2 cursor-pointer select-none group"
+          >
+            <i className="paper-logo-mark">✦</i>
+            <div className="flex flex-col">
+              <span className="font-black text-lg tracking-tight text-[var(--paper-ink)] group-hover:text-[var(--paper-o)] transition-colors">
+                bilim<span className="text-[var(--paper-o)]">box</span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-[var(--paper-mut)] -mt-1">
+                Listening Studio
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="paper-btn paper-btn-out paper-btn-sm h-9 w-9 p-0"
+            title="Rejimni almashtirish"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportWav}
+            disabled={isProcessing}
+            className="paper-btn paper-btn-p paper-btn-sm font-black flex items-center gap-2 disabled:opacity-50"
+          >
+            <BilimIcon name="download" size={16} />
+            <span>{isProcessing ? 'Yaratilmoqda...' : 'Export WAV'}</span>
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 p-6 max-w-4xl w-full mx-auto">
+      {/* Main Container */}
+      <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-4xl w-full mx-auto space-y-6">
+        {/* Banner */}
+        <div className="paper-box p-6 bg-[var(--paper-y)] text-[var(--paper-on)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">🎙️</span>
+              <h2 className="text-xl font-black">Listening Audio Konstruktori</h2>
+            </div>
+            <p className="text-xs font-bold opacity-80 max-w-xl">
+              Natijaviy audio faylni bir nechta spikerlar ovozi va oraliq pauzalar bilan qadamma-qadam yarating.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={addTtsBlock}
+              className="paper-btn paper-btn-sm bg-white text-[var(--paper-ink)] font-black flex items-center gap-1.5"
+            >
+              + Nutq bloki
+            </button>
+            <button
+              type="button"
+              onClick={addGapBlock}
+              className="paper-btn paper-btn-sm bg-white text-[var(--paper-ink)] font-black flex items-center gap-1.5"
+            >
+              + Pauza
+            </button>
+          </div>
+        </div>
+
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg">
-            {error}
+          <div className="paper-box p-4 bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-2 border-red-500 font-bold text-sm flex items-center justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="font-black ml-4">✕</button>
           </div>
         )}
 
-        <div className="space-y-4 mb-8">
+        {/* Blocks List */}
+        <div className="space-y-4">
           {blocks.length === 0 ? (
-            <div className="text-center py-16 border-2 border-dashed border-border rounded-xl text-muted-foreground">
-              <p className="mb-4">No audio blocks added yet.</p>
-              <div className="flex justify-center gap-4">
-                <Button onClick={addTtsBlock} variant="secondary">
-                  <Mic className="w-4 h-4 mr-2" /> Add Speech
-                </Button>
-                <Button onClick={addGapBlock} variant="secondary">
-                  <Timer className="w-4 h-4 mr-2" /> Add Silence
-                </Button>
+            <div className="paper-box p-12 text-center bg-[var(--paper-card)] border-dashed space-y-4">
+              <div className="text-5xl">🎧</div>
+              <h3 className="text-xl font-black text-[var(--paper-ink)]">Hali audio bloklar qo'shilmadi</h3>
+              <p className="text-xs font-bold text-[var(--paper-mut)] max-w-md mx-auto">
+                Test audio yaratish uchun yuqoridagi tugmalar orqali nutq yoki sukunat bloklarini qo'shing.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={addTtsBlock}
+                  className="paper-btn paper-btn-p font-black flex items-center gap-2"
+                >
+                  <BilimIcon name="volume" size={18} />
+                  <span>Nutq bloki qo'shish</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={addGapBlock}
+                  className="paper-btn paper-btn-out font-black flex items-center gap-2"
+                >
+                  <BilimIcon name="clock" size={18} />
+                  <span>Sukunat (pauza)</span>
+                </button>
               </div>
             </div>
           ) : (
             blocks.map((block, index) => (
-              <div key={block.id} className="p-4 border border-border rounded-xl bg-card shadow-sm flex gap-4 transition-all hover:border-primary/50">
-                <div className="flex flex-col gap-1 border-r pr-4 border-border justify-center">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={index === 0} onClick={() => moveBlock(index, 'up')}>
-                    <ArrowUp className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={index === blocks.length - 1} onClick={() => moveBlock(index, 'down')}>
-                    <ArrowDown className="w-4 h-4" />
-                  </Button>
+              <div 
+                key={block.id} 
+                className="paper-box p-5 bg-[var(--paper-card)] flex flex-col sm:flex-row gap-4 items-stretch relative group"
+              >
+                {/* Reorder Buttons */}
+                <div className="flex sm:flex-col gap-1.5 justify-center items-center pb-2 sm:pb-0 sm:border-r-2 sm:border-[var(--paper-ink)]/15 sm:pr-4">
+                  <button 
+                    type="button"
+                    disabled={index === 0} 
+                    onClick={() => moveBlock(index, 'up')}
+                    className="p-1.5 rounded-lg border-2 border-[var(--paper-ink)] hover:bg-[var(--paper-y)] disabled:opacity-30 disabled:hover:bg-transparent font-black text-xs"
+                    title="Yuqoriga surish"
+                  >
+                    ▲
+                  </button>
+                  <span className="text-xs font-black text-[var(--paper-mut)] px-1">
+                    #{index + 1}
+                  </span>
+                  <button 
+                    type="button"
+                    disabled={index === blocks.length - 1} 
+                    onClick={() => moveBlock(index, 'down')}
+                    className="p-1.5 rounded-lg border-2 border-[var(--paper-ink)] hover:bg-[var(--paper-y)] disabled:opacity-30 disabled:hover:bg-transparent font-black text-xs"
+                    title="Pastga surish"
+                  >
+                    ▼
+                  </button>
                 </div>
 
-                <div className="flex-1">
+                {/* Content */}
+                <div className="flex-1 space-y-3">
                   {block.type === 'tts' ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
-                          <Mic className="w-4 h-4" /> Speech Block
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--paper-o)] text-white text-xs font-black border border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]">
+                          <BilimIcon name="volume" size={14} />
+                          Nutq (TTS)
                         </span>
+
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateBlock(block)}>
-                            <Copy className="w-4 h-4" />
-                          </Button>
                           <select
                             value={block.speed || 1}
                             onChange={(e) => updateBlock(block.id, { speed: parseFloat(e.target.value) })}
-                            className="bg-muted text-sm border-none rounded px-2 py-1 focus:ring-0"
-                            title="Playback Speed"
+                            className="bg-[var(--paper)] text-xs font-bold border-2 border-[var(--paper-ink)] rounded-lg px-2 py-1 focus:outline-none"
+                            title="Tezlik"
                           >
-                            <option value={1.2}>1.2x (Fast)</option>
+                            <option value={1.2}>1.2x (Tez)</option>
                             <option value={1}>1.0x (Normal)</option>
-                            <option value={0.9}>0.9x (Slow)</option>
-                            <option value={0.85}>0.85x (Slower)</option>
-                            <option value={0.8}>0.8x (Very Slow)</option>
+                            <option value={0.9}>0.9x (Sekin)</option>
+                            <option value={0.85}>0.85x (Sekinroq)</option>
+                            <option value={0.8}>0.8x (Juda sekin)</option>
                           </select>
+
                           <select 
                             value={block.voice} 
                             onChange={(e) => updateBlock(block.id, { voice: e.target.value })}
-                            className="bg-muted text-sm border-none rounded px-2 py-1 focus:ring-0"
+                            className="bg-[var(--paper)] text-xs font-bold border-2 border-[var(--paper-ink)] rounded-lg px-2 py-1 focus:outline-none"
                           >
                             {voices.map(v => (
                               <option key={v.id} value={v.id}>{v.name}</option>
                             ))}
                           </select>
+
+                          <button 
+                            type="button"
+                            onClick={() => duplicateBlock(block)}
+                            className="p-1.5 rounded-lg border-2 border-[var(--paper-ink)] hover:bg-[var(--paper-y)] transition-colors"
+                            title="Nusxa olish"
+                          >
+                            <BilimIcon name="pencil" size={14} />
+                          </button>
                         </div>
                       </div>
+
                       <textarea
                         value={block.text || ''}
                         onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                        placeholder="Type the text for the speaker..."
-                        className="w-full min-h-[80px] p-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                        placeholder="Spiker gapirishi kerak bo'lgan inglizcha matnni kiriting..."
+                        className="w-full min-h-[85px] p-3 rounded-xl border-2 border-[var(--paper-ink)] bg-[var(--paper)] text-[var(--paper-ink)] font-medium text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--paper-ink)] resize-y"
                       />
-                      <div className="flex justify-between items-center">
+
+                      <div className="flex flex-wrap justify-between items-center gap-2 pt-1">
                         <div className="flex gap-2">
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            onClick={() => {
-                              if (!apiKey) {
-                                setError('Deepgram API kaliti kiritilmagan! Iltimos, yuqoridagi maydonga kalitni kiriting.');
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                                return;
-                              }
-                              generateAudioForBlock(block.id);
-                            }}
+                          <button 
+                            type="button"
+                            onClick={() => generateAudioForBlock(block.id)}
                             disabled={!block.text}
+                            className="paper-btn paper-btn-sm paper-btn-p font-black text-xs disabled:opacity-40"
                           >
-                            Generate Audio
-                          </Button>
+                            Audio yaratish
+                          </button>
+
                           {block.audioBuffer && (
-                            <Button variant="outline" size="sm" onClick={() => playPreview(block.audioBuffer!, block.speed)}>
-                              <Play className="w-4 h-4 mr-1" /> Preview
-                            </Button>
+                            <button 
+                              type="button"
+                              onClick={() => playPreview(block.audioBuffer!, block.speed)}
+                              className="paper-btn paper-btn-sm paper-btn-out font-black text-xs flex items-center gap-1.5"
+                            >
+                              <BilimIcon name="play" size={14} />
+                              Eshitish
+                            </button>
                           )}
                         </div>
+
                         {block.audioBuffer && (
-                          <span className="text-xs text-green-500 font-medium">✓ Ready ({(block.audioBuffer.duration).toFixed(1)}s)</span>
+                          <span className="text-xs font-black text-[var(--paper-g)] bg-emerald-100 dark:bg-emerald-950/40 px-2 py-1 rounded-md border border-emerald-500">
+                            ✓ Tayyor ({(block.audioBuffer.duration).toFixed(1)}s)
+                          </span>
                         )}
                         {!block.audioBuffer && block.text && (
-                          <span className="text-xs text-yellow-500 font-medium">Needs generation</span>
+                          <span className="text-xs font-black text-[var(--paper-o)] bg-amber-100 dark:bg-amber-950/40 px-2 py-1 rounded-md border border-amber-500">
+                            Audio kutilmoqda
+                          </span>
                         )}
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="space-y-3 h-full flex flex-col justify-center">
-                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <Timer className="w-4 h-4" /> Silence Block
-                      </span>
+                    <div className="space-y-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--paper-mut)] text-white text-xs font-black border border-[var(--paper-ink)] shadow-[2px_2px_0_var(--paper-ink)]">
+                          <BilimIcon name="clock" size={14} />
+                          Sukunat (Pauza)
+                        </span>
+                      </div>
+
                       <div className="flex items-center gap-3">
-                        <label className="text-sm text-foreground">Duration (seconds):</label>
+                        <label className="text-xs font-black text-[var(--paper-ink)]">Davomiyligi (soniya):</label>
                         <input
                           type="number"
-                          min="0.1"
-                          step="0.1"
+                          min="0.5"
+                          step="0.5"
                           value={block.duration || 3}
                           onChange={(e) => updateBlock(block.id, { duration: parseFloat(e.target.value) || 0 })}
-                          className="w-24 p-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          className="w-24 p-2 rounded-lg border-2 border-[var(--paper-ink)] bg-[var(--paper)] text-[var(--paper-ink)] font-black text-sm focus:outline-none"
                         />
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="pl-4 border-l border-border flex items-center">
-                  <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeBlock(block.id)}>
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
+                {/* Delete button */}
+                <div className="flex sm:flex-col justify-end sm:justify-center items-center pt-2 sm:pt-0 sm:border-l-2 sm:border-[var(--paper-ink)]/15 sm:pl-4">
+                  <button 
+                    type="button"
+                    onClick={() => removeBlock(block.id)}
+                    className="p-2 rounded-lg border-2 border-[var(--paper-ink)] hover:bg-[var(--paper-r)] hover:text-white transition-colors"
+                    title="Blokni o'chirish"
+                  >
+                    <BilimIcon name="trash" size={16} />
+                  </button>
                 </div>
               </div>
             ))
           )}
         </div>
 
+        {/* Footer Add Actions */}
         {blocks.length > 0 && (
-          <div className="flex justify-center gap-4 mt-6">
-            <Button onClick={addTtsBlock} variant="outline" className="border-dashed">
-              <Plus className="w-4 h-4 mr-2" /> Add Speech Block
-            </Button>
-            <Button onClick={addGapBlock} variant="outline" className="border-dashed">
-              <Plus className="w-4 h-4 mr-2" /> Add Silence Block
-            </Button>
+          <div className="flex flex-wrap justify-center gap-3 pt-4">
+            <button
+              type="button"
+              onClick={addTtsBlock}
+              className="paper-btn paper-btn-out font-black flex items-center gap-2"
+            >
+              <BilimIcon name="volume" size={18} />
+              <span>+ Nutq bloki</span>
+            </button>
+            <button
+              type="button"
+              onClick={addGapBlock}
+              className="paper-btn paper-btn-out font-black flex items-center gap-2"
+            >
+              <BilimIcon name="clock" size={18} />
+              <span>+ Sukunat bloki</span>
+            </button>
           </div>
         )}
       </main>

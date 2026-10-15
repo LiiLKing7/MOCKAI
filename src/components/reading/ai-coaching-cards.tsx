@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { ReadingPart } from "@/data/reading-test-1";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BrainCircuit, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { BilimIcon } from "@/components/ui/bilim-icon";
 import { groupMistakesByTaskType, analyzeMistakePattern, AICoachingPattern, MistakeGroup } from "@/lib/ai-coaching";
-import { cn } from "@/lib/utils";
 
 interface AICoachingCardsProps {
   parts: ReadingPart[];
@@ -14,16 +11,20 @@ interface AICoachingCardsProps {
 
 export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoachingCardsProps) {
   const [loading, setLoading] = useState(true);
-  const [coachingResults, setCoachingResults] = useState<{ group: MistakeGroup, pattern: AICoachingPattern }[]>([]);
+  const [coachingResults, setCoachingResults] = useState<{ group: MistakeGroup; pattern: AICoachingPattern }[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
+
   const groups = groupMistakesByTaskType(parts, answers);
   const totalMistakes = parts.reduce((acc, part) => {
     let wrong = 0;
     if (part.taskType === "short-text-mc") {
-      part.items.forEach(i => { if ((answers[i.id]?.toLowerCase().trim() || "") !== i.correctAnswer.toLowerCase().trim()) wrong++; });
+      part.items.forEach((i) => {
+        if ((answers[i.id]?.toLowerCase().trim() || "") !== i.correctAnswer.toLowerCase().trim()) wrong++;
+      });
     } else {
-      part.questions.forEach(q => { if ((answers[q.id]?.toLowerCase().trim() || "") !== q.correctAnswer.toLowerCase().trim()) wrong++; });
+      part.questions.forEach((q) => {
+        if ((answers[q.id]?.toLowerCase().trim() || "") !== q.correctAnswer.toLowerCase().trim()) wrong++;
+      });
     }
     return acc + wrong;
   }, 0);
@@ -39,10 +40,8 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
       setError(null);
 
       try {
-        // 3. Parallel Execution with Promise.allSettled
-        const results = await Promise.allSettled(groups.map(g => analyzeMistakePattern(g)));
-        
-        const successfulResults: { group: MistakeGroup, pattern: AICoachingPattern }[] = [];
+        const results = await Promise.allSettled(groups.map((g) => analyzeMistakePattern(g)));
+        const successfulResults: { group: MistakeGroup; pattern: AICoachingPattern }[] = [];
         let anyFailed = false;
 
         results.forEach((result, index) => {
@@ -57,10 +56,10 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
         setCoachingResults(successfulResults);
 
         if (successfulResults.length === 0 && anyFailed) {
-          setError("An error occurred during analysis. Please try again or check the API key.");
+          setError("Tahlil jarayonida xatolik yuz berdi.");
         }
       } catch (err: any) {
-        setError(err.message || "An error occurred during analysis.");
+        setError(err.message || "Tahlil jarayonida xatolik yuz berdi.");
       } finally {
         setLoading(false);
       }
@@ -72,7 +71,7 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
   const getTaskTypeName = (taskType: string) => {
     const names: Record<string, string> = {
       "inline-gap-fill": "Part 1: Gap Fill",
-      "matching": "Part 2: Matching Information",
+      matching: "Part 2: Matching Information",
       "matching-headings": "Part 3: Matching Headings",
       "long-text-mc": "Part 4 & 5: Reading Comprehension",
     };
@@ -81,80 +80,77 @@ export function AICoachingCards({ parts, answers, onReviewQuestion }: AICoaching
 
   if (totalMistakes === 0) {
     return (
-      <div className="w-full mt-8 p-6 rounded-xl border border-success/30 bg-success/5 flex flex-col items-center text-center gap-3">
-        <Sparkles className="w-10 h-10 text-success mb-2" />
-        <h3 className="text-xl font-bold text-success-foreground">Great Job!</h3>
-        <p className="text-muted-foreground max-w-md">
-          You answered all questions correctly. Keep it up!
+      <div className="paper-box p-6 bg-[var(--paper-g)] text-[var(--paper-on)] flex flex-col items-center text-center gap-2">
+        <BilimIcon name="star" size={36} />
+        <h3 className="text-xl font-black">Ajoyib Natija!</h3>
+        <p className="text-sm font-bold opacity-90 max-w-md">
+          Barcha savollarga to'g'ri javob berdingiz. Shunday davom eting!
         </p>
       </div>
     );
   }
 
   if (groups.length === 0 && totalMistakes > 0) {
-    return (
-      <div className="w-full mt-8 p-6 rounded-xl border bg-muted/20 flex flex-col items-center text-center gap-3">
-        <BrainCircuit className="w-10 h-10 text-muted-foreground mb-2" />
-        <h3 className="text-xl font-bold">Insufficient Data</h3>
-        <p className="text-muted-foreground max-w-md">
-          To find a specific pattern in your mistakes, there must be at least 2 mistakes in one section. Keep practicing for deeper analysis next time!
-        </p>
-      </div>
-    );
+    return null;
   }
 
   if (loading) {
     return (
-      <div className="w-full mt-8 p-8 rounded-xl border border-primary/20 bg-primary/5 flex flex-col items-center justify-center text-center gap-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold text-primary">AI Analysis</h3>
-          <p className="text-sm text-muted-foreground">Analyzing your mistake patterns...</p>
-        </div>
+      <div className="paper-box p-6 bg-[var(--paper-soft)] flex items-center justify-center gap-3">
+        <BilimIcon name="bulb" size={28} />
+        <span className="font-extrabold text-sm text-[var(--paper-ink)]">
+          AI Murabbiy xatolaringizni tahlil qilmoqda...
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="w-full mt-8 space-y-4">
-      <div className="flex items-center gap-2 mb-6">
-        <BrainCircuit className="w-6 h-6 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">AI Strategy Analysis</h2>
+    <div className="w-full space-y-4">
+      <div className="flex items-center gap-2">
+        <BilimIcon name="bulb" size={24} />
+        <h3 className="text-xl font-black text-[var(--paper-ink)]">
+          AI Murabbiy Tavsiyalari:
+        </h3>
       </div>
 
       {error && coachingResults.length === 0 && (
-        <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{error}</p>
+        <div className="p-4 rounded-xl border-2 border-[var(--paper-ink)] bg-[var(--paper-r)] text-[var(--paper-on)] font-bold text-sm">
+          {error}
         </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {coachingResults.map((result, idx) => {
           const { group, pattern } = result;
-          // Find the specific mistake to know its partId and questionIndex
-          const mistakeObj = group.mistakes.find(m => m.questionId === pattern.exampleQuestionId) || group.mistakes[0];
+          const mistakeObj =
+            group.mistakes.find((m) => m.questionId === pattern.exampleQuestionId) || group.mistakes[0];
 
           return (
-            <Card key={idx} className="p-5 border-primary/20 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full bg-gradient-to-br from-background to-primary/5">
-              <div className="mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-primary/80 bg-primary/10 px-2 py-1 rounded-md">
+            <div
+              key={idx}
+              className="paper-box p-5 bg-[var(--paper-card)] flex flex-col justify-between space-y-3"
+            >
+              <div>
+                <span className="paper-badge paper-badge-purple text-xs font-black mb-2">
                   {getTaskTypeName(group.taskType)}
                 </span>
+                <h4 className="text-lg font-black text-[var(--paper-ink)] mt-1 mb-2">
+                  {pattern.title}
+                </h4>
+                <p className="text-sm font-semibold leading-relaxed text-[var(--paper-mut)]">
+                  {pattern.explanation}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">{pattern.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-1">
-                {pattern.explanation}
-              </p>
-              
-              <Button 
-                variant="outline" 
-                className="w-full mt-auto group border-primary/30 hover:bg-primary/10 hover:text-primary"
+
+              <button
+                type="button"
                 onClick={() => onReviewQuestion(mistakeObj.partId, mistakeObj.questionIndex)}
+                className="paper-btn paper-btn-out paper-btn-sm w-full font-black mt-2"
               >
-                View Example
-              </Button>
-            </Card>
+                Misolni ko'rish →
+              </button>
+            </div>
           );
         })}
       </div>
